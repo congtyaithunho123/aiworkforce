@@ -4,6 +4,7 @@ import organizationsRouter from "./organizations";
 import agentsRouter from "./agents";
 import tasksRouter from "./tasks";
 import executionsRouter from "./executions";
+import workflowsRouter from "./workflows";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(organizationsRouter);
 router.use(agentsRouter);
 router.use(tasksRouter);
 router.use(executionsRouter);
+router.use(workflowsRouter);
 
 export default router;
