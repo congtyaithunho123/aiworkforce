@@ -1,9 +1,20 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
+import { z } from "zod/v4";
 import { db, agentsTable } from "@workspace/db";
-import { CreateAgentBody } from "@workspace/api-zod";
+import { requireRole } from "../middleware/require-role";
 
 const router: IRouter = Router();
+
+const CreateAgentInput = z.object({
+  name: z.string().min(1),
+  role: z.string().min(1),
+  systemPrompt: z.string().min(1),
+  model: z.string().optional(),
+  outputFormat: z.enum(["text", "json"]).optional(),
+  outputSchema: z.string().optional(),
+  capabilities: z.string().optional(),
+});
 
 router.get("/agents", async (req, res): Promise<void> => {
   const orgId = req.user!.organizationId;
@@ -16,8 +27,8 @@ router.get("/agents", async (req, res): Promise<void> => {
   res.json(agents);
 });
 
-router.post("/agents", async (req, res): Promise<void> => {
-  const parsed = CreateAgentBody.safeParse(req.body);
+router.post("/agents", requireRole(["owner", "admin"]), async (req, res): Promise<void> => {
+  const parsed = CreateAgentInput.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
@@ -35,6 +46,7 @@ router.post("/agents", async (req, res): Promise<void> => {
       ...(parsed.data.model ? { model: parsed.data.model } : {}),
       ...(parsed.data.outputFormat ? { outputFormat: parsed.data.outputFormat } : {}),
       ...(parsed.data.outputSchema ? { outputSchema: parsed.data.outputSchema } : {}),
+      ...(parsed.data.capabilities ? { capabilities: parsed.data.capabilities } : {}),
     })
     .returning();
 

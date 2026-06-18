@@ -8,6 +8,7 @@ import {
   RefreshCw, ArrowRight, Star, TrendingUp, Target, Lightbulb,
   BookOpen, Gauge,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,10 +39,10 @@ type Content = {
 type ProjectDetail = { project: Project; research?: Research; keywords?: Keywords; content?: Content };
 
 const api = {
-  get: (p: string) => fetch(`/api${p}`).then(r => r.json()),
-  post: (p: string, b: unknown) => fetch(`/api${p}`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b),
-  }).then(r => r.json()),
+  get: <T>(p: string) => apiFetch<T>(`/api${p}`),
+  post: <T>(p: string, b: unknown) => apiFetch<T>(`/api${p}`, {
+    method: "POST", body: JSON.stringify(b),
+  }),
 };
 
 // ── Workflow config ───────────────────────────────────────────────────────────

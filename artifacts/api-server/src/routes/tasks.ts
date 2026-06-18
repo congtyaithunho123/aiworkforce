@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, type SQL } from "drizzle-orm";
 import { db, tasksTable, agentsTable } from "@workspace/db";
 import { CreateTaskBody } from "@workspace/api-zod";
 import { z } from "zod/v4";
@@ -11,7 +11,11 @@ router.get("/tasks", async (req, res): Promise<void> => {
   const status = req.query.status ? String(req.query.status) : null;
   const approvalStatus = req.query.approvalStatus ? String(req.query.approvalStatus) : null;
 
-  let query = db
+  const conditions: SQL[] = [eq(tasksTable.organizationId, orgId)];
+  if (status) conditions.push(eq(tasksTable.status, status));
+  if (approvalStatus) conditions.push(eq(tasksTable.approvalStatus, approvalStatus));
+
+  const tasks = await db
     .select({
       id: tasksTable.id,
       agentId: tasksTable.agentId,
@@ -32,17 +36,9 @@ router.get("/tasks", async (req, res): Promise<void> => {
     })
     .from(tasksTable)
     .leftJoin(agentsTable, eq(tasksTable.agentId, agentsTable.id))
-    .where(eq(tasksTable.organizationId, orgId))
-    .$dynamic();
-
-  if (status) {
-    query = query.where(eq(tasksTable.status, status));
-  }
-  if (approvalStatus) {
-    query = query.where(eq(tasksTable.approvalStatus, approvalStatus));
-  }
-
-  const tasks = await query.orderBy(desc(tasksTable.createdAt)).limit(50);
+    .where(and(...conditions))
+    .orderBy(desc(tasksTable.createdAt))
+    .limit(50);
   res.json(tasks);
 });
 

@@ -260,7 +260,7 @@ router.post("/auth/forgot-password", async (req, res): Promise<void> => {
     expiresAt: getPasswordResetTokenExpiry(),
   });
 
-  req.log.info({ userId: user.id, token }, "Password reset token generated");
+  req.log.info({ userId: user.id }, "Password reset token generated");
   res.json({
     message: "If that email is registered, a reset link has been sent.",
     debug_token: process.env.NODE_ENV !== "production" ? token : undefined,

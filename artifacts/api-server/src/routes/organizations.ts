@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, organizationsTable } from "@workspace/db";
+import { requireRole } from "../middleware/require-role";
 
 const router: IRouter = Router();
 
@@ -30,8 +31,8 @@ router.get("/organizations/:id", async (req, res): Promise<void> => {
   res.json(org);
 });
 
-router.patch("/organizations/:id", async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+router.patch("/organizations/:id", requireRole(["owner", "admin"]), async (req, res): Promise<void> => {
+  const id = parseInt(String(req.params.id), 10);
   if (isNaN(id) || id !== req.user!.organizationId) {
     res.status(403).json({ error: "Access denied" });
     return;

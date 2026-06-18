@@ -2,9 +2,13 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { randomBytes } from "crypto";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+let JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is required");
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET environment variable is required in production");
+  }
+  JWT_SECRET = "dev-only-insecure-secret-do-not-use-in-production";
+  console.warn("[auth] WARNING: JWT_SECRET not set — using insecure dev fallback. Set JWT_SECRET as a secret before deploying.");
 }
 
 const ACCESS_TOKEN_EXPIRY = "15m";

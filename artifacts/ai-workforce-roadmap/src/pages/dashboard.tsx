@@ -9,19 +9,7 @@ import {
   ArrowUpRight, Layers, GitMerge, RefreshCw, Briefcase
 } from "lucide-react";
 
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? res.statusText);
-  }
-  return res.json() as Promise<T>;
-}
+import { apiFetch } from "@/lib/api";
 
 type Org = { id: number; name: string; description?: string };
 type Agent = {

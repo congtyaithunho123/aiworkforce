@@ -7,6 +7,7 @@ import {
   Search, Target, Zap, FileSpreadsheet, Sparkles, ArrowRight,
   DollarSign, Hash, BarChart3, RefreshCw,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -40,12 +41,11 @@ type LeadList = {
 // ── API helpers ────────────────────────────────────────────────────────────
 
 const api = {
-  get: (path: string) => fetch(`/api${path}`).then(r => r.json()),
-  post: (path: string, body: unknown) => fetch(`/api${path}`, {
+  get: <T>(path: string) => apiFetch<T>(`/api${path}`),
+  post: <T>(path: string, body: unknown) => apiFetch<T>(`/api${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  }).then(r => r.json()),
+  }),
 };
 
 // ── Utility Components ─────────────────────────────────────────────────────

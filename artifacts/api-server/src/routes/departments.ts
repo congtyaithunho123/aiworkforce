@@ -7,6 +7,7 @@ import {
   agentsTable,
 } from "@workspace/db";
 import { runDepartment } from "../lib/department-manager";
+import { requireRole } from "../middleware/require-role";
 import { z } from "zod/v4";
 
 const router: IRouter = Router();
@@ -49,7 +50,7 @@ router.get("/departments", async (req, res): Promise<void> => {
   res.json(deptsWithAgents);
 });
 
-router.post("/departments", async (req, res): Promise<void> => {
+router.post("/departments", requireRole(["owner", "admin"]), async (req, res): Promise<void> => {
   const parsed = CreateDeptBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -100,9 +101,9 @@ router.post("/departments/:id/agents", async (req, res): Promise<void> => {
   res.status(201).json({ departmentId: deptId, agentId });
 });
 
-router.delete("/departments/:id/agents/:agentId", async (req, res): Promise<void> => {
-  const deptId = parseInt(req.params.id, 10);
-  const agentId = parseInt(req.params.agentId, 10);
+router.delete("/departments/:id/agents/:agentId", requireRole(["owner", "admin"]), async (req, res): Promise<void> => {
+  const deptId = parseInt(String(req.params.id), 10);
+  const agentId = parseInt(String(req.params.agentId), 10);
   const orgId = req.user!.organizationId;
   if (isNaN(deptId) || isNaN(agentId)) {
     res.status(400).json({ error: "Invalid ids" });
@@ -117,7 +118,7 @@ router.delete("/departments/:id/agents/:agentId", async (req, res): Promise<void
 
   await db
     .delete(departmentAgentsTable)
-    .where(eq(departmentAgentsTable.departmentId, deptId));
+    .where(and(eq(departmentAgentsTable.departmentId, deptId), eq(departmentAgentsTable.agentId, agentId)));
   res.json({ success: true });
 });
 
