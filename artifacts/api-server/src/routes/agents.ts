@@ -28,6 +28,8 @@ router.post("/agents", async (req, res): Promise<void> => {
       role: parsed.data.role,
       systemPrompt: parsed.data.systemPrompt,
       ...(parsed.data.model ? { model: parsed.data.model } : {}),
+      ...(parsed.data.outputFormat ? { outputFormat: parsed.data.outputFormat } : {}),
+      ...(parsed.data.outputSchema ? { outputSchema: parsed.data.outputSchema } : {}),
     })
     .returning();
 

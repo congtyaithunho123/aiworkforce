@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * AI Workforce API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export interface Agent {
@@ -13,6 +13,9 @@ export interface Agent {
   role: string;
   systemPrompt: string;
   model: string;
+  outputFormat: string;
+  /** @nullable */
+  outputSchema?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

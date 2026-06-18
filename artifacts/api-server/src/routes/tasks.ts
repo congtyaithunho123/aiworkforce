@@ -2,7 +2,6 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, tasksTable, agentsTable } from "@workspace/db";
 import { CreateTaskBody } from "@workspace/api-zod";
-import { runAgentTask } from "../lib/agent-runner";
 
 const router: IRouter = Router();
 
@@ -33,16 +32,9 @@ router.post("/tasks", async (req, res): Promise<void> => {
     })
     .returning();
 
-  req.log.info({ taskId: task.id, agentId: agent.id }, "Task created, running agent");
+  req.log.info({ taskId: task.id, agentId: agent.id }, "Task queued for background execution");
 
-  const runResult = await runAgentTask(task.id);
-
-  const [updatedTask] = await db
-    .select()
-    .from(tasksTable)
-    .where(eq(tasksTable.id, task.id));
-
-  res.status(201).json(updatedTask ?? { ...task, ...runResult });
+  res.status(201).json(task);
 });
 
 router.get("/tasks/:id", async (req, res): Promise<void> => {

@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * AI Workforce API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import {
   useMutation,
@@ -23,7 +23,9 @@ import type {
   Agent,
   AgentNew,
   ErrorResponse,
+  Execution,
   HealthStatus,
+  ListExecutionsParams,
   Organization,
   OrganizationNew,
   Task,
@@ -51,7 +53,6 @@ export const getHealthCheckUrl = () => {
 }
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const healthCheck = async ( options?: RequestInit): Promise<HealthStatus> => {
@@ -425,8 +426,8 @@ export const getCreateTaskUrl = () => {
 }
 
 /**
- * Creates a task, runs the agent against it, and returns the result
- * @summary Create and execute a task
+ * Creates a task and returns immediately. Worker picks it up in the background.
+ * @summary Create a task (async execution)
  */
 export const createTask = async (taskNew: TaskNew, options?: RequestInit): Promise<Task> => {
 
@@ -475,7 +476,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateTaskMutationError = ErrorType<ErrorResponse>
 
     /**
- * @summary Create and execute a task
+ * @summary Create a task (async execution)
  */
 export const useCreateTask = <TError = ErrorType<ErrorResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: BodyType<TaskNew>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -553,6 +554,167 @@ export function useGetTask<TData = Awaited<ReturnType<typeof getTask>>, TError =
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetTaskQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListExecutionsUrl = (params?: ListExecutionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/executions?${stringifiedParams}` : `/api/executions`
+}
+
+/**
+ * @summary List executions
+ */
+export const listExecutions = async (params?: ListExecutionsParams, options?: RequestInit): Promise<Execution[]> => {
+
+  return customFetch<Execution[]>(getListExecutionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListExecutionsQueryKey = (params?: ListExecutionsParams,) => {
+    return [
+    `/api/executions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListExecutionsQueryOptions = <TData = Awaited<ReturnType<typeof listExecutions>>, TError = ErrorType<unknown>>(params?: ListExecutionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listExecutions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListExecutionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listExecutions>>> = ({ signal }) => listExecutions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listExecutions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListExecutionsQueryResult = NonNullable<Awaited<ReturnType<typeof listExecutions>>>
+export type ListExecutionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List executions
+ */
+
+export function useListExecutions<TData = Awaited<ReturnType<typeof listExecutions>>, TError = ErrorType<unknown>>(
+ params?: ListExecutionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listExecutions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListExecutionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetExecutionUrl = (id: number,) => {
+
+
+
+
+  return `/api/executions/${id}`
+}
+
+/**
+ * @summary Get an execution by ID
+ */
+export const getExecution = async (id: number, options?: RequestInit): Promise<Execution> => {
+
+  return customFetch<Execution>(getGetExecutionUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetExecutionQueryKey = (id: number,) => {
+    return [
+    `/api/executions/${id}`
+    ] as const;
+    }
+
+
+export const getGetExecutionQueryOptions = <TData = Awaited<ReturnType<typeof getExecution>>, TError = ErrorType<ErrorResponse>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExecution>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetExecutionQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getExecution>>> = ({ signal }) => getExecution(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getExecution>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetExecutionQueryResult = NonNullable<Awaited<ReturnType<typeof getExecution>>>
+export type GetExecutionQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get an execution by ID
+ */
+
+export function useGetExecution<TData = Awaited<ReturnType<typeof getExecution>>, TError = ErrorType<ErrorResponse>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExecution>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetExecutionQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

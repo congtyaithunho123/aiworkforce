@@ -3,13 +3,16 @@
  * Do not edit manually.
  * Api
  * AI Workforce API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from './agent';
 export * from './agentNew';
+export * from './agentNewOutputFormat';
 export * from './errorResponse';
+export * from './execution';
 export * from './healthStatus';
+export * from './listExecutionsParams';
 export * from './organization';
 export * from './organizationNew';
 export * from './task';

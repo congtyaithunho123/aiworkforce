@@ -3,8 +3,9 @@
  * Do not edit manually.
  * Api
  * AI Workforce API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
+import type { AgentNewOutputFormat } from './agentNewOutputFormat';
 
 export interface AgentNew {
   organizationId: number;
@@ -15,4 +16,6 @@ export interface AgentNew {
   /** @minLength 1 */
   systemPrompt: string;
   model?: string;
+  outputFormat?: AgentNewOutputFormat;
+  outputSchema?: string;
 }

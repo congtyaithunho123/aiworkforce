@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: AI Workforce API specification
 servers:
   - url: /api
@@ -10,17 +10,20 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: organizations
+    description: Organization management
   - name: agents
     description: AI Agent management
   - name: tasks
-    description: Task execution
+    description: Task management
+  - name: executions
+    description: Execution records
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -109,8 +112,8 @@ paths:
     post:
       operationId: createTask
       tags: [tasks]
-      summary: Create and execute a task
-      description: Creates a task, runs the agent against it, and returns the result
+      summary: Create a task (async execution)
+      description: Creates a task and returns immediately. Worker picks it up in the background.
       requestBody:
         required: true
         content:
@@ -119,7 +122,7 @@ paths:
               $ref: "#/components/schemas/TaskNew"
       responses:
         "201":
-          description: Task executed and result returned
+          description: Task queued
           content:
             application/json:
               schema:
@@ -162,15 +165,72 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /executions:
+    get:
+      operationId: listExecutions
+      tags: [executions]
+      summary: List executions
+      parameters:
+        - name: taskId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: agentId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Execution"
+
+  /executions/{id}:
+    get:
+      operationId: getExecution
+      tags: [executions]
+      summary: Get an execution by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Execution found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Execution"
+        "404":
+          description: Execution not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
 
     Organization:
       type: object
@@ -199,16 +259,9 @@ components:
         description:
           type: string
 
-    ErrorResponse:
-      type: object
-      required: [error]
-      properties:
-        error:
-          type: string
-
     Agent:
       type: object
-      required: [id, organizationId, name, role, systemPrompt, model, createdAt, updatedAt]
+      required: [id, organizationId, name, role, systemPrompt, model, outputFormat, createdAt, updatedAt]
       properties:
         id:
           type: integer
@@ -222,6 +275,10 @@ components:
           type: string
         model:
           type: string
+        outputFormat:
+          type: string
+        outputSchema:
+          type: ["string", "null"]
         createdAt:
           type: string
           format: date-time
@@ -245,6 +302,11 @@ components:
           type: string
           minLength: 1
         model:
+          type: string
+        outputFormat:
+          type: string
+          enum: ["text", "json"]
+        outputSchema:
           type: string
 
     Task:
@@ -285,3 +347,32 @@ components:
         input:
           type: string
           minLength: 1
+
+    Execution:
+      type: object
+      required: [id, taskId, agentId, startedAt, promptTokens, completionTokens, totalTokens, estimatedCost, status]
+      properties:
+        id:
+          type: integer
+        taskId:
+          type: integer
+        agentId:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: ["string", "null"]
+          format: date-time
+        promptTokens:
+          type: integer
+        completionTokens:
+          type: integer
+        totalTokens:
+          type: integer
+        estimatedCost:
+          type: number
+        status:
+          type: string
+        output:
+          type: ["string", "null"]

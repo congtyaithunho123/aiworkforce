@@ -3,10 +3,14 @@
  * Do not edit manually.
  * Api
  * AI Workforce API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
+}
+
+export interface ErrorResponse {
+  error: string;
 }
 
 export interface Organization {
@@ -24,10 +28,6 @@ export interface OrganizationNew {
   description?: string;
 }
 
-export interface ErrorResponse {
-  error: string;
-}
-
 export interface Agent {
   id: number;
   organizationId: number;
@@ -35,9 +35,20 @@ export interface Agent {
   role: string;
   systemPrompt: string;
   model: string;
+  outputFormat: string;
+  /** @nullable */
+  outputSchema?: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+export type AgentNewOutputFormat = typeof AgentNewOutputFormat[keyof typeof AgentNewOutputFormat];
+
+
+export const AgentNewOutputFormat = {
+  text: 'text',
+  json: 'json',
+} as const;
 
 export interface AgentNew {
   organizationId: number;
@@ -48,6 +59,8 @@ export interface AgentNew {
   /** @minLength 1 */
   systemPrompt: string;
   model?: string;
+  outputFormat?: AgentNewOutputFormat;
+  outputSchema?: string;
 }
 
 export interface Task {
@@ -72,4 +85,25 @@ export interface TaskNew {
   /** @minLength 1 */
   input: string;
 }
+
+export interface Execution {
+  id: number;
+  taskId: number;
+  agentId: number;
+  startedAt: string;
+  /** @nullable */
+  endedAt?: string | null;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  estimatedCost: number;
+  status: string;
+  /** @nullable */
+  output?: string | null;
+}
+
+export type ListExecutionsParams = {
+taskId?: number;
+agentId?: number;
+};
 

@@ -3,13 +3,12 @@
  * Do not edit manually.
  * Api
  * AI Workforce API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from 'zod';
 
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -55,7 +54,9 @@ export const CreateAgentBody = zod.object({
   "name": zod.string().min(1),
   "role": zod.string().min(1),
   "systemPrompt": zod.string().min(1),
-  "model": zod.string().optional()
+  "model": zod.string().optional(),
+  "outputFormat": zod.enum(['text', 'json']).optional(),
+  "outputSchema": zod.string().optional()
 })
 
 
@@ -69,6 +70,8 @@ export const ListAgentsResponseItem = zod.object({
   "role": zod.string(),
   "systemPrompt": zod.string(),
   "model": zod.string(),
+  "outputFormat": zod.string(),
+  "outputSchema": zod.string().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -76,8 +79,8 @@ export const ListAgentsResponse = zod.array(ListAgentsResponseItem)
 
 
 /**
- * Creates a task, runs the agent against it, and returns the result
- * @summary Create and execute a task
+ * Creates a task and returns immediately. Worker picks it up in the background.
+ * @summary Create a task (async execution)
  */
 
 
@@ -107,6 +110,52 @@ export const GetTaskResponse = zod.object({
   "executionMs": zod.number().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List executions
+ */
+export const ListExecutionsQueryParams = zod.object({
+  "taskId": zod.coerce.number().optional(),
+  "agentId": zod.coerce.number().optional()
+})
+
+export const ListExecutionsResponseItem = zod.object({
+  "id": zod.number(),
+  "taskId": zod.number(),
+  "agentId": zod.number(),
+  "startedAt": zod.coerce.date(),
+  "endedAt": zod.coerce.date().nullish(),
+  "promptTokens": zod.number(),
+  "completionTokens": zod.number(),
+  "totalTokens": zod.number(),
+  "estimatedCost": zod.number(),
+  "status": zod.string(),
+  "output": zod.string().nullish()
+})
+export const ListExecutionsResponse = zod.array(ListExecutionsResponseItem)
+
+
+/**
+ * @summary Get an execution by ID
+ */
+export const GetExecutionParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetExecutionResponse = zod.object({
+  "id": zod.number(),
+  "taskId": zod.number(),
+  "agentId": zod.number(),
+  "startedAt": zod.coerce.date(),
+  "endedAt": zod.coerce.date().nullish(),
+  "promptTokens": zod.number(),
+  "completionTokens": zod.number(),
+  "totalTokens": zod.number(),
+  "estimatedCost": zod.number(),
+  "status": zod.string(),
+  "output": zod.string().nullish()
 })
 
 

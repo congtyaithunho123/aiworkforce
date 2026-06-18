@@ -1,74 +1,112 @@
-import { eq } from "drizzle-orm";
-import { db, agentsTable, tasksTable, memoriesTable } from "@workspace/db";
-import { runCompletion, type ChatMessage } from "./ai-service";
+import { eq, isNull, and, asc } from "drizzle-orm";
+import {
+  db,
+  agentsTable,
+  tasksTable,
+  memoriesTable,
+  executionsTable,
+} from "@workspace/db";
+import { runCompletion, estimateCost, type ChatMessage } from "./ai-service";
+import { maybeSummarizeMemories } from "./memory-summarizer";
 import { logger } from "./logger";
 
 export type RunTaskResult = {
   taskId: number;
-  result: string;
-  executionMs: number;
+  executionId: number;
   status: "completed" | "failed";
   errorMessage?: string;
 };
 
 export async function runAgentTask(taskId: number): Promise<RunTaskResult> {
-  const start = Date.now();
-
   const [task] = await db
     .select()
     .from(tasksTable)
     .where(eq(tasksTable.id, taskId));
 
-  if (!task) {
-    throw new Error(`Task ${taskId} not found`);
-  }
+  if (!task) throw new Error(`Task ${taskId} not found`);
 
   const [agent] = await db
     .select()
     .from(agentsTable)
     .where(eq(agentsTable.id, task.agentId));
 
-  if (!agent) {
-    throw new Error(`Agent ${task.agentId} not found`);
-  }
+  if (!agent) throw new Error(`Agent ${task.agentId} not found`);
 
   await db
     .update(tasksTable)
     .set({ status: "running" })
     .where(eq(tasksTable.id, taskId));
 
+  const [execution] = await db
+    .insert(executionsTable)
+    .values({
+      taskId: task.id,
+      agentId: agent.id,
+      status: "running",
+    })
+    .returning();
+
   logger.info(
-    { taskId, agentId: agent.id, agentName: agent.name },
-    "Running agent task",
+    { taskId, agentId: agent.id, executionId: execution.id },
+    "Agent task started",
   );
 
-  const recentMemories = await db
+  await maybeSummarizeMemories(agent.id, task.organizationId);
+
+  const activeMemories = await db
     .select()
     .from(memoriesTable)
-    .where(eq(memoriesTable.agentId, agent.id))
-    .orderBy(memoriesTable.createdAt)
-    .limit(20);
+    .where(
+      and(
+        eq(memoriesTable.agentId, agent.id),
+        isNull(memoriesTable.archivedAt),
+      ),
+    )
+    .orderBy(asc(memoriesTable.createdAt))
+    .limit(30);
 
   const messages: ChatMessage[] = [
     { role: "system", content: agent.systemPrompt },
-    ...recentMemories.map((m) => ({
-      role: m.role as "user" | "assistant",
+    ...activeMemories.map((m) => ({
+      role: m.role as "user" | "assistant" | "system",
       content: m.content,
     })),
     { role: "user", content: task.input },
   ];
 
+  const startedAt = new Date();
+
   try {
-    const aiResult = await runCompletion(messages, agent.model);
-    const executionMs = Date.now() - start;
+    const aiResult = await runCompletion(messages, {
+      model: agent.model,
+      outputFormat: (agent.outputFormat as "text" | "json") ?? "text",
+      outputSchema: agent.outputSchema,
+    });
+
+    const endedAt = new Date();
+    const executionMs = endedAt.getTime() - startedAt.getTime();
+    const cost = estimateCost(
+      aiResult.model,
+      aiResult.promptTokens,
+      aiResult.completionTokens,
+    );
+
+    await db
+      .update(executionsTable)
+      .set({
+        endedAt,
+        promptTokens: aiResult.promptTokens,
+        completionTokens: aiResult.completionTokens,
+        totalTokens: aiResult.totalTokens,
+        estimatedCost: cost,
+        status: "completed",
+        output: aiResult.content,
+      })
+      .where(eq(executionsTable.id, execution.id));
 
     await db
       .update(tasksTable)
-      .set({
-        status: "completed",
-        result: aiResult.content,
-        executionMs,
-      })
+      .set({ status: "completed", result: aiResult.content, executionMs })
       .where(eq(tasksTable.id, taskId));
 
     await db.insert(memoriesTable).values([
@@ -89,22 +127,31 @@ export async function runAgentTask(taskId: number): Promise<RunTaskResult> {
     ]);
 
     logger.info(
-      { taskId, executionMs, tokens: aiResult.promptTokens + aiResult.completionTokens },
+      { taskId, executionId: execution.id, executionMs, totalTokens: aiResult.totalTokens, cost },
       "Task completed",
     );
 
-    return { taskId, result: aiResult.content, executionMs, status: "completed" };
+    return { taskId, executionId: execution.id, status: "completed" };
   } catch (err) {
-    const executionMs = Date.now() - start;
+    const endedAt = new Date();
     const errorMessage = err instanceof Error ? err.message : String(err);
 
     await db
+      .update(executionsTable)
+      .set({ endedAt, status: "failed", output: errorMessage })
+      .where(eq(executionsTable.id, execution.id));
+
+    await db
       .update(tasksTable)
-      .set({ status: "failed", errorMessage, executionMs })
+      .set({
+        status: "failed",
+        errorMessage,
+        executionMs: endedAt.getTime() - startedAt.getTime(),
+      })
       .where(eq(tasksTable.id, taskId));
 
-    logger.error({ taskId, errorMessage }, "Task failed");
+    logger.error({ taskId, executionId: execution.id, errorMessage }, "Task failed");
 
-    return { taskId, result: "", executionMs, status: "failed", errorMessage };
+    return { taskId, executionId: execution.id, status: "failed", errorMessage };
   }
 }

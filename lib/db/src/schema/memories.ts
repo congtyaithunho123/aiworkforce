@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { agentsTable } from "./agents";
@@ -8,10 +8,14 @@ import { tasksTable } from "./tasks";
 export const memoriesTable = pgTable("memories", {
   id: serial("id").primaryKey(),
   agentId: integer("agent_id").references(() => agentsTable.id, { onDelete: "cascade" }),
-  organizationId: integer("organization_id").references(() => organizationsTable.id, { onDelete: "cascade" }).notNull(),
+  organizationId: integer("organization_id")
+    .references(() => organizationsTable.id, { onDelete: "cascade" })
+    .notNull(),
   taskId: integer("task_id").references(() => tasksTable.id, { onDelete: "set null" }),
   role: text("role").notNull(),
   content: text("content").notNull(),
+  isSummary: boolean("is_summary").notNull().default(false),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
