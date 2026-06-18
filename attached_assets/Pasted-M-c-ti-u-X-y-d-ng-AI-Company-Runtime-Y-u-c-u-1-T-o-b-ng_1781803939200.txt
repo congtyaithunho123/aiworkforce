@@ -1,0 +1,169 @@
+Mục tiêu: Xây dựng AI Company Runtime.
+
+Yêu cầu:
+
+1. Tạo bảng departments
+
+Các cột:
+
+* id
+* organizationId
+* name
+* description
+* managerAgentId
+* createdAt
+
+Ví dụ:
+
+* Sales Department
+* Marketing Department
+* Support Department
+
+2. Tạo bảng department_agents
+
+Các cột:
+
+* departmentId
+* agentId
+
+Một phòng ban có nhiều agent.
+
+3. Tạo DepartmentManagerService
+
+Nhiệm vụ:
+
+* Nhận yêu cầu từ người dùng
+* Phân công công việc cho agent phù hợp
+* Theo dõi tiến độ
+* Tổng hợp kết quả
+
+Flow:
+
+User Request
+↓
+Department Manager
+↓
+Assign Tasks
+↓
+Agents Execute
+↓
+Collect Results
+↓
+Final Report
+
+4. Thêm Agent Capability System
+
+Mỗi agent có:
+
+{
+"capabilities": [
+"research",
+"sales",
+"marketing",
+"email"
+]
+}
+
+Task sẽ được route theo capability.
+
+5. Tạo Skill Registry
+
+API:
+
+GET /api/skills
+
+POST /api/skills
+
+PUT /api/skills/:id
+
+Mỗi skill:
+
+{
+"name": "lead_generation",
+"description": "...",
+"inputSchema": {},
+"outputSchema": {}
+}
+
+6. Tạo Tool Calling Layer
+
+Agent có thể gọi:
+
+* Web Search
+* Database Query
+* Workflow Runner
+* Internal APIs
+
+Tất cả tool phải được đăng ký trong Tool Registry.
+
+7. Thêm Human Approval
+
+Task có thể có:
+
+{
+"requiresApproval": true
+}
+
+Luồng:
+
+Agent
+↓
+Draft Result
+↓
+Human Review
+↓
+Approve / Reject
+↓
+Complete
+
+8. Dashboard mới
+
+Hiển thị:
+
+* Departments
+* Agents
+* Workflows
+* Executions
+* Human Reviews
+* Cost Tracking
+
+9. Cost Analytics
+
+Theo dõi:
+
+* Prompt Tokens
+* Completion Tokens
+* Total Cost
+* Cost per Agent
+* Cost per Department
+* Cost per Workflow
+
+10. KPI Dashboard
+
+Hiển thị:
+
+* Tasks Completed
+* Success Rate
+* Average Duration
+* Cost per Task
+* Agent Performance Ranking
+
+Mục tiêu cuối cùng:
+
+Một organization có nhiều phòng ban AI.
+
+Sales Department
+├── Lead Agent
+├── Outreach Agent
+└── Reviewer Agent
+
+Marketing Department
+├── Research Agent
+├── Content Agent
+└── SEO Agent
+
+Support Department
+├── Support Agent
+└── QA Agent
+
+Hệ thống có thể tự phân công và phối hợp công việc giữa các phòng ban.

@@ -14,6 +14,7 @@ export const agentsTable = pgTable("agents", {
   model: text("model").notNull().default("gpt-4o-mini"),
   outputFormat: text("output_format").notNull().default("text"),
   outputSchema: text("output_schema"),
+  capabilities: text("capabilities"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

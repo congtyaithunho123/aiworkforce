@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { agentsTable } from "./agents";
@@ -13,6 +13,10 @@ export const tasksTable = pgTable("tasks", {
   result: text("result"),
   errorMessage: text("error_message"),
   executionMs: integer("execution_ms"),
+  requiresApproval: boolean("requires_approval").notNull().default(false),
+  approvalStatus: text("approval_status"),
+  approvalNote: text("approval_note"),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -23,6 +27,9 @@ export const insertTaskSchema = createInsertSchema(tasksTable).omit({
   result: true,
   errorMessage: true,
   executionMs: true,
+  approvalStatus: true,
+  approvalNote: true,
+  reviewedAt: true,
   createdAt: true,
   updatedAt: true,
 });

@@ -6,3 +6,7 @@ export * from "./executions";
 export * from "./workflows";
 export * from "./workflow-steps";
 export * from "./workflow-runs";
+export * from "./departments";
+export * from "./department-agents";
+export * from "./skills";
+export * from "./tools";

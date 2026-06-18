@@ -5,16 +5,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import WorkflowsPage from "@/pages/workflows";
-import { GitMerge, Map } from "lucide-react";
+import DashboardPage from "@/pages/dashboard";
+import { GitMerge, Map, LayoutDashboard } from "lucide-react";
 
 const queryClient = new QueryClient();
 
 function Nav() {
   const [location] = useLocation();
-  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
   const links = [
     { href: "/", label: "Roadmap", Icon: Map },
+    { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
     { href: "/workflows", label: "Workflows", Icon: GitMerge },
   ];
 
@@ -48,6 +49,7 @@ function Router() {
       <div className="pt-12">
         <Switch>
           <Route path="/" component={Home} />
+          <Route path="/dashboard" component={DashboardPage} />
           <Route path="/workflows" component={WorkflowsPage} />
           <Route component={NotFound} />
         </Switch>
