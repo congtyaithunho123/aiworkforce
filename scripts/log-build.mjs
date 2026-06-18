@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build logger — ghi lại mỗi lần build vào tientrinhehthong.md
+ * Build logger — ghi lại mỗi lần build vào TiếnTrìnhHệThống.MD
  * Sử dụng: node scripts/log-build.mjs --package <tên> --status <success|failed> [--durationMs <ms>] [--desc <mô tả>]
  */
 
@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
-const LOG_FILE = resolve(ROOT, "tientrinhehthong.md");
+const LOG_FILE = resolve(ROOT, "TiếnTrìnhHệThống.MD");
 
 function parseArgs(argv) {
   const args = {};
