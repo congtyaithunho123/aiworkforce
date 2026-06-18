@@ -10,3 +10,7 @@ export * from "./departments";
 export * from "./department-agents";
 export * from "./skills";
 export * from "./tools";
+export * from "./sales-companies";
+export * from "./sales-contacts";
+export * from "./sales-campaigns";
+export * from "./sales-lead-lists";

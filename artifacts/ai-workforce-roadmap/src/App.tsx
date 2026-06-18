@@ -6,7 +6,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import WorkflowsPage from "@/pages/workflows";
 import DashboardPage from "@/pages/dashboard";
-import { GitMerge, Map, LayoutDashboard } from "lucide-react";
+import SalesPage from "@/pages/sales";
+import { GitMerge, Map, LayoutDashboard, Zap } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ function Nav() {
     { href: "/", label: "Roadmap", Icon: Map },
     { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
     { href: "/workflows", label: "Workflows", Icon: GitMerge },
+    { href: "/sales", label: "AI SDR", Icon: Zap },
   ];
 
   return (
@@ -51,6 +53,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/dashboard" component={DashboardPage} />
           <Route path="/workflows" component={WorkflowsPage} />
+          <Route path="/sales" component={SalesPage} />
           <Route component={NotFound} />
         </Switch>
       </div>

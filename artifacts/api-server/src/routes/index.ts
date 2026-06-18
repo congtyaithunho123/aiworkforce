@@ -9,6 +9,7 @@ import departmentsRouter from "./departments";
 import skillsRouter from "./skills";
 import analyticsRouter from "./analytics";
 import toolsRouter from "./tools-api";
+import salesRouter from "./sales";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(departmentsRouter);
 router.use(skillsRouter);
 router.use(analyticsRouter);
 router.use(toolsRouter);
+router.use(salesRouter);
 
 export default router;
