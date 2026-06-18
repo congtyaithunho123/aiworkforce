@@ -49,8 +49,9 @@ args = "PORT=5173 BASE_PATH=/ pnpm --filter @workspace/ai-workforce-roadmap dev"
 waitForPort = 5173
 
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
+integrations = ["javascript_openai_ai_integrations:2.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
@@ -71,3 +72,6 @@ externalPort = 8081
 [[ports]]
 localPort = 24988
 externalPort = 3000
+
+[nix]
+channel = "stable-25_05"
