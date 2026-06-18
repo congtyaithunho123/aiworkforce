@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Zd_Kt3GyuC5NXKQcIY_Gz"
+uri = "file://artifacts/ai-workforce-roadmap/src/assets/hero-bg.png"
+type = "image"
+title = "Tactical abstract map"

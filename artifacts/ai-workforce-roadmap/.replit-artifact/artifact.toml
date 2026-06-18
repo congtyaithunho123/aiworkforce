@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "AI Workforce Roadmap"
+version = "1.0.0"
+id = "artifacts/ai-workforce-roadmap"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24988
+
+[services.development]
+run = "pnpm --filter @workspace/ai-workforce-roadmap run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-workforce-roadmap", "run", "build" ]
+publicDir = "artifacts/ai-workforce-roadmap/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24988"
+BASE_PATH = "/"
