@@ -14,3 +14,7 @@ export * from "./sales-companies";
 export * from "./sales-contacts";
 export * from "./sales-campaigns";
 export * from "./sales-lead-lists";
+export * from "./marketing-projects";
+export * from "./marketing-research";
+export * from "./marketing-keywords";
+export * from "./marketing-content";

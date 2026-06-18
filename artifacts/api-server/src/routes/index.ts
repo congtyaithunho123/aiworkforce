@@ -10,6 +10,7 @@ import skillsRouter from "./skills";
 import analyticsRouter from "./analytics";
 import toolsRouter from "./tools-api";
 import salesRouter from "./sales";
+import marketingRouter from "./marketing";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(skillsRouter);
 router.use(analyticsRouter);
 router.use(toolsRouter);
 router.use(salesRouter);
+router.use(marketingRouter);
 
 export default router;
