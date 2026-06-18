@@ -1,26 +1,55 @@
 import { Router, type IRouter } from "express";
+import { eq } from "drizzle-orm";
 import { db, organizationsTable } from "@workspace/db";
 
 const router: IRouter = Router();
 
 router.get("/organizations", async (req, res): Promise<void> => {
-  req.log.info("Listing organizations");
-  const orgs = await db.select().from(organizationsTable).orderBy(organizationsTable.createdAt);
-  res.json(orgs);
+  const orgId = req.user!.organizationId;
+  const [org] = await db
+    .select()
+    .from(organizationsTable)
+    .where(eq(organizationsTable.id, orgId));
+  res.json(org ? [org] : []);
 });
 
-router.post("/organizations", async (req, res): Promise<void> => {
-  const { name, description } = req.body as { name?: string; description?: string };
-  if (!name) {
-    res.status(400).json({ error: "name is required" });
+router.get("/organizations/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id) || id !== req.user!.organizationId) {
+    res.status(403).json({ error: "Access denied" });
     return;
   }
   const [org] = await db
-    .insert(organizationsTable)
-    .values({ name, ...(description ? { description } : {}) })
+    .select()
+    .from(organizationsTable)
+    .where(eq(organizationsTable.id, id));
+  if (!org) {
+    res.status(404).json({ error: "Organization not found" });
+    return;
+  }
+  res.json(org);
+});
+
+router.patch("/organizations/:id", async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id) || id !== req.user!.organizationId) {
+    res.status(403).json({ error: "Access denied" });
+    return;
+  }
+
+  const { name, description } = req.body as { name?: string; description?: string };
+  if (!name && !description) {
+    res.status(400).json({ error: "name or description is required" });
+    return;
+  }
+
+  const [org] = await db
+    .update(organizationsTable)
+    .set({ ...(name ? { name } : {}), ...(description ? { description } : {}) })
+    .where(eq(organizationsTable.id, id))
     .returning();
-  req.log.info({ orgId: org.id }, "Organization created");
-  res.status(201).json(org);
+
+  res.json(org);
 });
 
 export default router;

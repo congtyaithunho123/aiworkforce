@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { db, tasksTable, agentsTable } from "@workspace/db";
 import { CreateTaskBody } from "@workspace/api-zod";
 import { z } from "zod/v4";
@@ -7,7 +7,7 @@ import { z } from "zod/v4";
 const router: IRouter = Router();
 
 router.get("/tasks", async (req, res): Promise<void> => {
-  const orgId = req.query.organizationId ? parseInt(String(req.query.organizationId), 10) : null;
+  const orgId = req.user!.organizationId;
   const status = req.query.status ? String(req.query.status) : null;
   const approvalStatus = req.query.approvalStatus ? String(req.query.approvalStatus) : null;
 
@@ -32,11 +32,9 @@ router.get("/tasks", async (req, res): Promise<void> => {
     })
     .from(tasksTable)
     .leftJoin(agentsTable, eq(tasksTable.agentId, agentsTable.id))
+    .where(eq(tasksTable.organizationId, orgId))
     .$dynamic();
 
-  if (orgId && !isNaN(orgId)) {
-    query = query.where(eq(tasksTable.organizationId, orgId));
-  }
   if (status) {
     query = query.where(eq(tasksTable.status, status));
   }
@@ -55,10 +53,12 @@ router.post("/tasks", async (req, res): Promise<void> => {
     return;
   }
 
+  const orgId = req.user!.organizationId;
+
   const [agent] = await db
     .select()
     .from(agentsTable)
-    .where(eq(agentsTable.id, parsed.data.agentId));
+    .where(and(eq(agentsTable.id, parsed.data.agentId), eq(agentsTable.organizationId, orgId)));
 
   if (!agent) {
     res.status(404).json({ error: "Agent not found" });
@@ -71,7 +71,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
     .insert(tasksTable)
     .values({
       agentId: parsed.data.agentId,
-      organizationId: parsed.data.organizationId,
+      organizationId: orgId,
       input: parsed.data.input,
       status: "pending",
       requiresApproval,
@@ -84,9 +84,13 @@ router.post("/tasks", async (req, res): Promise<void> => {
 
 router.get("/tasks/:id", async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
+  const orgId = req.user!.organizationId;
   if (isNaN(id)) { res.status(400).json({ error: "Invalid task id" }); return; }
 
-  const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
+  const [task] = await db
+    .select()
+    .from(tasksTable)
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.organizationId, orgId)));
   if (!task) { res.status(404).json({ error: "Task not found" }); return; }
   res.json(task);
 });
@@ -98,12 +102,16 @@ const ApprovalBody = z.object({
 
 router.post("/tasks/:id/approve", async (req, res): Promise<void> => {
   const id = parseInt(String(req.params.id), 10);
+  const orgId = req.user!.organizationId;
   if (isNaN(id)) { res.status(400).json({ error: "Invalid task id" }); return; }
 
   const parsed = ApprovalBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const [task] = await db.select().from(tasksTable).where(eq(tasksTable.id, id));
+  const [task] = await db
+    .select()
+    .from(tasksTable)
+    .where(and(eq(tasksTable.id, id), eq(tasksTable.organizationId, orgId)));
   if (!task) { res.status(404).json({ error: "Task not found" }); return; }
 
   if (!task.requiresApproval) {

@@ -1,14 +1,17 @@
 import { Router, type IRouter } from "express";
+import { eq } from "drizzle-orm";
 import { db, agentsTable } from "@workspace/db";
 import { CreateAgentBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 router.get("/agents", async (req, res): Promise<void> => {
+  const orgId = req.user!.organizationId;
   req.log.info("Listing agents");
   const agents = await db
     .select()
     .from(agentsTable)
+    .where(eq(agentsTable.organizationId, orgId))
     .orderBy(agentsTable.createdAt);
   res.json(agents);
 });
@@ -20,10 +23,12 @@ router.post("/agents", async (req, res): Promise<void> => {
     return;
   }
 
+  const orgId = req.user!.organizationId;
+
   const [agent] = await db
     .insert(agentsTable)
     .values({
-      organizationId: parsed.data.organizationId,
+      organizationId: orgId,
       name: parsed.data.name,
       role: parsed.data.role,
       systemPrompt: parsed.data.systemPrompt,

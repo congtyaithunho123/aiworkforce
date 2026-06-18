@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, and } from "drizzle-orm";
 import {
   db,
   workflowsTable,
@@ -7,7 +7,6 @@ import {
   workflowRunsTable,
   workflowStepLogsTable,
   agentsTable,
-  organizationsTable,
 } from "@workspace/db";
 import { runWorkflow } from "../lib/workflow-runner";
 import { runPlannerAgent } from "../lib/planner-agent";
@@ -16,7 +15,6 @@ import { z } from "zod/v4";
 const router: IRouter = Router();
 
 const CreateWorkflowBody = z.object({
-  organizationId: z.number().int().positive(),
   name: z.string().min(1),
   description: z.string().optional(),
 });
@@ -34,9 +32,9 @@ const RunWorkflowBody = z.object({
 });
 
 router.get("/workflows", async (req, res): Promise<void> => {
-  const orgId = req.query.organizationId ? parseInt(String(req.query.organizationId), 10) : null;
+  const orgId = req.user!.organizationId;
 
-  let query = db
+  const workflows = await db
     .select({
       id: workflowsTable.id,
       organizationId: workflowsTable.organizationId,
@@ -47,13 +45,9 @@ router.get("/workflows", async (req, res): Promise<void> => {
       updatedAt: workflowsTable.updatedAt,
     })
     .from(workflowsTable)
-    .$dynamic();
+    .where(eq(workflowsTable.organizationId, orgId))
+    .orderBy(desc(workflowsTable.createdAt));
 
-  if (orgId && !isNaN(orgId)) {
-    query = query.where(eq(workflowsTable.organizationId, orgId));
-  }
-
-  const workflows = await query.orderBy(desc(workflowsTable.createdAt));
   res.json(workflows);
 });
 
@@ -64,20 +58,12 @@ router.post("/workflows", async (req, res): Promise<void> => {
     return;
   }
 
-  const [org] = await db
-    .select()
-    .from(organizationsTable)
-    .where(eq(organizationsTable.id, parsed.data.organizationId));
-
-  if (!org) {
-    res.status(404).json({ error: "Organization not found" });
-    return;
-  }
+  const orgId = req.user!.organizationId;
 
   const [workflow] = await db
     .insert(workflowsTable)
     .values({
-      organizationId: parsed.data.organizationId,
+      organizationId: orgId,
       name: parsed.data.name,
       description: parsed.data.description,
     })
@@ -89,6 +75,7 @@ router.post("/workflows", async (req, res): Promise<void> => {
 
 router.get("/workflows/:id", async (req, res): Promise<void> => {
   const id = parseInt(req.params.id, 10);
+  const orgId = req.user!.organizationId;
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid workflow id" });
     return;
@@ -97,7 +84,7 @@ router.get("/workflows/:id", async (req, res): Promise<void> => {
   const [workflow] = await db
     .select()
     .from(workflowsTable)
-    .where(eq(workflowsTable.id, id));
+    .where(and(eq(workflowsTable.id, id), eq(workflowsTable.organizationId, orgId)));
 
   if (!workflow) {
     res.status(404).json({ error: "Workflow not found" });
@@ -126,6 +113,7 @@ router.get("/workflows/:id", async (req, res): Promise<void> => {
 
 router.post("/workflows/:id/steps", async (req, res): Promise<void> => {
   const workflowId = parseInt(req.params.id, 10);
+  const orgId = req.user!.organizationId;
   if (isNaN(workflowId)) {
     res.status(400).json({ error: "Invalid workflow id" });
     return;
@@ -140,7 +128,7 @@ router.post("/workflows/:id/steps", async (req, res): Promise<void> => {
   const [workflow] = await db
     .select()
     .from(workflowsTable)
-    .where(eq(workflowsTable.id, workflowId));
+    .where(and(eq(workflowsTable.id, workflowId), eq(workflowsTable.organizationId, orgId)));
 
   if (!workflow) {
     res.status(404).json({ error: "Workflow not found" });
@@ -150,7 +138,7 @@ router.post("/workflows/:id/steps", async (req, res): Promise<void> => {
   const [agent] = await db
     .select()
     .from(agentsTable)
-    .where(eq(agentsTable.id, parsed.data.agentId));
+    .where(and(eq(agentsTable.id, parsed.data.agentId), eq(agentsTable.organizationId, orgId)));
 
   if (!agent) {
     res.status(404).json({ error: "Agent not found" });
@@ -174,6 +162,7 @@ router.post("/workflows/:id/steps", async (req, res): Promise<void> => {
 
 router.post("/workflows/:id/run", async (req, res): Promise<void> => {
   const workflowId = parseInt(req.params.id, 10);
+  const orgId = req.user!.organizationId;
   if (isNaN(workflowId)) {
     res.status(400).json({ error: "Invalid workflow id" });
     return;
@@ -188,7 +177,7 @@ router.post("/workflows/:id/run", async (req, res): Promise<void> => {
   const [workflow] = await db
     .select()
     .from(workflowsTable)
-    .where(eq(workflowsTable.id, workflowId));
+    .where(and(eq(workflowsTable.id, workflowId), eq(workflowsTable.organizationId, orgId)));
 
   if (!workflow) {
     res.status(404).json({ error: "Workflow not found" });
@@ -209,17 +198,23 @@ router.post("/workflows/:id/run", async (req, res): Promise<void> => {
   }
 
   const result = await runWorkflow(workflowId, parsed.data.input);
-
-  res.json({
-    ...result,
-    plannerOutput,
-  });
+  res.json({ ...result, plannerOutput });
 });
 
 router.get("/workflows/:id/executions", async (req, res): Promise<void> => {
   const workflowId = parseInt(req.params.id, 10);
+  const orgId = req.user!.organizationId;
   if (isNaN(workflowId)) {
     res.status(400).json({ error: "Invalid workflow id" });
+    return;
+  }
+
+  const [workflow] = await db
+    .select()
+    .from(workflowsTable)
+    .where(and(eq(workflowsTable.id, workflowId), eq(workflowsTable.organizationId, orgId)));
+  if (!workflow) {
+    res.status(404).json({ error: "Workflow not found" });
     return;
   }
 
@@ -230,7 +225,7 @@ router.get("/workflows/:id/executions", async (req, res): Promise<void> => {
     .orderBy(desc(workflowRunsTable.startedAt));
 
   const runsWithSteps = await Promise.all(
-    runs.map(async (run) => {
+    runs.map(async (run: typeof workflowRunsTable.$inferSelect) => {
       const stepLogs = await db
         .select({
           id: workflowStepLogsTable.id,
@@ -264,6 +259,7 @@ router.get("/workflows/:id/executions", async (req, res): Promise<void> => {
 
 router.get("/workflows/:id/executions/:runId", async (req, res): Promise<void> => {
   const runId = parseInt(req.params.runId, 10);
+  const orgId = req.user!.organizationId;
   if (isNaN(runId)) {
     res.status(400).json({ error: "Invalid run id" });
     return;
@@ -276,6 +272,15 @@ router.get("/workflows/:id/executions/:runId", async (req, res): Promise<void> =
 
   if (!run) {
     res.status(404).json({ error: "Workflow run not found" });
+    return;
+  }
+
+  const [workflow] = await db
+    .select()
+    .from(workflowsTable)
+    .where(and(eq(workflowsTable.id, run.workflowId), eq(workflowsTable.organizationId, orgId)));
+  if (!workflow) {
+    res.status(403).json({ error: "Access denied" });
     return;
   }
 

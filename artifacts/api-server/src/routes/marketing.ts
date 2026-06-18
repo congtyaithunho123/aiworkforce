@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import {
   db,
   marketingProjectsTable,
@@ -21,7 +21,6 @@ import { logger } from "../lib/logger";
 
 const router = Router();
 
-// ── POST /api/marketing/project ─────────────────────────────────────────────
 const CreateProjectSchema = z.object({
   topic: z.string().min(1),
   targetAudience: z.string().min(1),
@@ -32,7 +31,10 @@ router.post("/marketing/project", async (req, res) => {
   const parsed = CreateProjectSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
 
+  const orgId = req.user!.organizationId;
+
   const [project] = await db.insert(marketingProjectsTable).values({
+    organizationId: orgId,
     topic: parsed.data.topic,
     targetAudience: parsed.data.targetAudience,
     niche: parsed.data.niche,
@@ -43,12 +45,13 @@ router.post("/marketing/project", async (req, res) => {
   return res.status(201).json({ project });
 });
 
-// ── POST /api/marketing/research ────────────────────────────────────────────
 router.post("/marketing/research", async (req, res) => {
   const parsed = z.object({ projectId: z.number().int().positive() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
 
-  const [project] = await db.select().from(marketingProjectsTable).where(eq(marketingProjectsTable.id, parsed.data.projectId));
+  const orgId = req.user!.organizationId;
+  const [project] = await db.select().from(marketingProjectsTable)
+    .where(and(eq(marketingProjectsTable.id, parsed.data.projectId), eq(marketingProjectsTable.organizationId, orgId)));
   if (!project) return res.status(404).json({ error: "Project not found" });
 
   await db.update(marketingProjectsTable).set({ status: "running" }).where(eq(marketingProjectsTable.id, project.id));
@@ -94,12 +97,13 @@ router.post("/marketing/research", async (req, res) => {
   }
 });
 
-// ── POST /api/marketing/keywords ─────────────────────────────────────────────
 router.post("/marketing/keywords", async (req, res) => {
   const parsed = z.object({ projectId: z.number().int().positive() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
 
-  const [project] = await db.select().from(marketingProjectsTable).where(eq(marketingProjectsTable.id, parsed.data.projectId));
+  const orgId = req.user!.organizationId;
+  const [project] = await db.select().from(marketingProjectsTable)
+    .where(and(eq(marketingProjectsTable.id, parsed.data.projectId), eq(marketingProjectsTable.organizationId, orgId)));
   if (!project) return res.status(404).json({ error: "Project not found" });
 
   const [research] = await db.select().from(marketingResearchTable).where(eq(marketingResearchTable.projectId, project.id));
@@ -151,12 +155,13 @@ router.post("/marketing/keywords", async (req, res) => {
   }
 });
 
-// ── POST /api/marketing/content ─────────────────────────────────────────────
 router.post("/marketing/content", async (req, res) => {
   const parsed = z.object({ projectId: z.number().int().positive() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
 
-  const [project] = await db.select().from(marketingProjectsTable).where(eq(marketingProjectsTable.id, parsed.data.projectId));
+  const orgId = req.user!.organizationId;
+  const [project] = await db.select().from(marketingProjectsTable)
+    .where(and(eq(marketingProjectsTable.id, parsed.data.projectId), eq(marketingProjectsTable.organizationId, orgId)));
   if (!project) return res.status(404).json({ error: "Project not found" });
 
   const [[research], [keywords]] = await Promise.all([
@@ -178,7 +183,6 @@ router.post("/marketing/content", async (req, res) => {
     let totalTokens = tokens;
     let totalCost = cost;
 
-    // Chain: SEO optimization right after content
     const seoResult = await runSeoOptimizationAgent(
       output.body,
       keywords.primaryKeyword ?? "",
@@ -232,12 +236,13 @@ router.post("/marketing/content", async (req, res) => {
   }
 });
 
-// ── POST /api/marketing/review ──────────────────────────────────────────────
 router.post("/marketing/review", async (req, res) => {
   const parsed = z.object({ projectId: z.number().int().positive() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
 
-  const [project] = await db.select().from(marketingProjectsTable).where(eq(marketingProjectsTable.id, parsed.data.projectId));
+  const orgId = req.user!.organizationId;
+  const [project] = await db.select().from(marketingProjectsTable)
+    .where(and(eq(marketingProjectsTable.id, parsed.data.projectId), eq(marketingProjectsTable.organizationId, orgId)));
   if (!project) return res.status(404).json({ error: "Project not found" });
 
   const [[content], [keywords]] = await Promise.all([
@@ -277,32 +282,39 @@ router.post("/marketing/review", async (req, res) => {
   }
 });
 
-// ── POST /api/marketing/publish ─────────────────────────────────────────────
 router.post("/marketing/publish", async (req, res) => {
   const parsed = z.object({ projectId: z.number().int().positive() }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
 
-  const [project] = await db.update(marketingProjectsTable).set({
+  const orgId = req.user!.organizationId;
+  const [project] = await db.select().from(marketingProjectsTable)
+    .where(and(eq(marketingProjectsTable.id, parsed.data.projectId), eq(marketingProjectsTable.organizationId, orgId)));
+  if (!project) return res.status(404).json({ error: "Project not found" });
+
+  const [updated] = await db.update(marketingProjectsTable).set({
     status: "published",
     workflowStep: "published",
-  }).where(eq(marketingProjectsTable.id, parsed.data.projectId)).returning();
+  }).where(eq(marketingProjectsTable.id, project.id)).returning();
 
-  return res.json({ project });
+  return res.json({ project: updated });
 });
 
-// ── GET /api/marketing/projects ──────────────────────────────────────────────
-router.get("/marketing/projects", async (_req, res) => {
-  const projects = await db.select().from(marketingProjectsTable).orderBy(desc(marketingProjectsTable.createdAt));
+router.get("/marketing/projects", async (req, res) => {
+  const orgId = req.user!.organizationId;
+  const projects = await db.select().from(marketingProjectsTable)
+    .where(eq(marketingProjectsTable.organizationId, orgId))
+    .orderBy(desc(marketingProjectsTable.createdAt));
   return res.json({ projects });
 });
 
-// ── GET /api/marketing/project/:id ──────────────────────────────────────────
 router.get("/marketing/project/:id", async (req, res) => {
   const id = parseInt(req.params.id);
+  const orgId = req.user!.organizationId;
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
 
   const [[project], [research], [keywords], [content]] = await Promise.all([
-    db.select().from(marketingProjectsTable).where(eq(marketingProjectsTable.id, id)),
+    db.select().from(marketingProjectsTable)
+      .where(and(eq(marketingProjectsTable.id, id), eq(marketingProjectsTable.organizationId, orgId))),
     db.select().from(marketingResearchTable).where(eq(marketingResearchTable.projectId, id)),
     db.select().from(marketingKeywordsTable).where(eq(marketingKeywordsTable.projectId, id)),
     db.select().from(marketingContentTable).where(eq(marketingContentTable.projectId, id)),
@@ -312,16 +324,27 @@ router.get("/marketing/project/:id", async (req, res) => {
   return res.json({ project, research, keywords, content });
 });
 
-// ── GET /api/marketing/dashboard ─────────────────────────────────────────────
-router.get("/marketing/dashboard", async (_req, res) => {
-  const [projectsCount] = await db.select({ count: sql<number>`count(*)::int` }).from(marketingProjectsTable);
-  const [publishedCount] = await db.select({ count: sql<number>`count(*)::int` }).from(marketingProjectsTable)
-    .where(eq(marketingProjectsTable.status, "published"));
-  const [contentCount] = await db.select({ count: sql<number>`count(*)::int` }).from(marketingContentTable);
-  const [costAgg] = await db.select({ total: sql<number>`coalesce(sum(estimated_cost),0)` }).from(marketingProjectsTable);
-  const [tokensAgg] = await db.select({ total: sql<number>`coalesce(sum(total_tokens),0)` }).from(marketingProjectsTable);
+router.get("/marketing/dashboard", async (req, res) => {
+  const orgId = req.user!.organizationId;
+
+  const [projectsCount] = await db.select({ count: sql<number>`count(*)::int` })
+    .from(marketingProjectsTable).where(eq(marketingProjectsTable.organizationId, orgId));
+  const [publishedCount] = await db.select({ count: sql<number>`count(*)::int` })
+    .from(marketingProjectsTable)
+    .where(and(eq(marketingProjectsTable.organizationId, orgId), eq(marketingProjectsTable.status, "published")));
+  const [contentCount] = await db.select({ count: sql<number>`count(*)::int` })
+    .from(marketingContentTable)
+    .innerJoin(marketingProjectsTable, and(
+      eq(marketingContentTable.projectId, marketingProjectsTable.id),
+      eq(marketingProjectsTable.organizationId, orgId),
+    ));
+  const [costAgg] = await db.select({ total: sql<number>`coalesce(sum(${marketingProjectsTable.estimatedCost}),0)` })
+    .from(marketingProjectsTable).where(eq(marketingProjectsTable.organizationId, orgId));
+  const [tokensAgg] = await db.select({ total: sql<number>`coalesce(sum(${marketingProjectsTable.totalTokens}),0)` })
+    .from(marketingProjectsTable).where(eq(marketingProjectsTable.organizationId, orgId));
 
   const recentProjects = await db.select().from(marketingProjectsTable)
+    .where(eq(marketingProjectsTable.organizationId, orgId))
     .orderBy(desc(marketingProjectsTable.createdAt)).limit(5);
 
   return res.json({
@@ -336,17 +359,19 @@ router.get("/marketing/dashboard", async (_req, res) => {
   });
 });
 
-// ── GET /api/marketing/project/:id/export/md ────────────────────────────────
 router.get("/marketing/project/:id/export/md", async (req, res) => {
   const id = parseInt(req.params.id);
+  const orgId = req.user!.organizationId;
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
 
   const [[project], [keywords], [content]] = await Promise.all([
-    db.select().from(marketingProjectsTable).where(eq(marketingProjectsTable.id, id)),
+    db.select().from(marketingProjectsTable)
+      .where(and(eq(marketingProjectsTable.id, id), eq(marketingProjectsTable.organizationId, orgId))),
     db.select().from(marketingKeywordsTable).where(eq(marketingKeywordsTable.projectId, id)),
     db.select().from(marketingContentTable).where(eq(marketingContentTable.projectId, id)),
   ]);
 
+  if (!project) return res.status(404).json({ error: "Project not found" });
   if (!content) return res.status(404).json({ error: "Content not found" });
 
   const md = `---
@@ -368,18 +393,21 @@ ${content.body}
   return res.send(md);
 });
 
-// ── GET /api/marketing/project/:id/export/html ──────────────────────────────
 router.get("/marketing/project/:id/export/html", async (req, res) => {
   const id = parseInt(req.params.id);
+  const orgId = req.user!.organizationId;
   if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
 
-  const [[content], [keywords]] = await Promise.all([
+  const [[project], [content], [keywords]] = await Promise.all([
+    db.select().from(marketingProjectsTable)
+      .where(and(eq(marketingProjectsTable.id, id), eq(marketingProjectsTable.organizationId, orgId))),
     db.select().from(marketingContentTable).where(eq(marketingContentTable.projectId, id)),
     db.select().from(marketingKeywordsTable).where(eq(marketingKeywordsTable.projectId, id)),
   ]);
+
+  if (!project) return res.status(404).json({ error: "Project not found" });
   if (!content) return res.status(404).json({ error: "Content not found" });
 
-  // Simple markdown-to-html
   const bodyHtml = (content.body ?? "")
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")

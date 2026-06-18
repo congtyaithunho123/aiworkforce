@@ -1,3 +1,4 @@
 - [Multi-Agent Workflow Architecture](workflow-arch.md) — workflows chạy PORT=8080 (API) + PORT=5173 (Frontend), vite proxy /api → localhost:8080
 - [AI SDR Team Architecture](sdr-architecture.md) — sales module: 4 DB tables, 4 Zod-validated agents, 12 API routes, /sales frontend page
 - [AI Marketing Team Architecture](marketing-architecture.md) — marketing module: 4 DB tables, 5 agents, 11 routes, /marketing page with step-by-step workflow runner
+- [Auth + Multi-tenant Foundation](auth-architecture.md) — JWT auth, refresh tokens, Express namespace augmentation, tenant isolation via req.user.organizationId
