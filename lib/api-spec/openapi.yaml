@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI Workforce API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: agents
+    description: AI Agent management
+  - name: tasks
+    description: Task execution
 paths:
   /healthz:
     get:
@@ -24,6 +28,102 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /agents:
+    post:
+      operationId: createAgent
+      tags: [agents]
+      summary: Create an AI agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentInput"
+      responses:
+        "201":
+          description: Agent created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agent"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listAgents
+      tags: [agents]
+      summary: List all agents
+      responses:
+        "200":
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Agent"
+
+  /tasks:
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create and execute a task
+      description: Creates a task, runs the agent against it, and returns the result
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Task executed and result returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get a task by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +134,89 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    Agent:
+      type: object
+      required: [id, organizationId, name, role, systemPrompt, model, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        systemPrompt:
+          type: string
+        model:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AgentInput:
+      type: object
+      required: [organizationId, name, role, systemPrompt]
+      properties:
+        organizationId:
+          type: integer
+        name:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          minLength: 1
+        systemPrompt:
+          type: string
+          minLength: 1
+        model:
+          type: string
+
+    Task:
+      type: object
+      required: [id, agentId, organizationId, input, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        agentId:
+          type: integer
+        organizationId:
+          type: integer
+        input:
+          type: string
+        status:
+          type: string
+        result:
+          type: ["string", "null"]
+        errorMessage:
+          type: ["string", "null"]
+        executionMs:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TaskInput:
+      type: object
+      required: [agentId, organizationId, input]
+      properties:
+        agentId:
+          type: integer
+        organizationId:
+          type: integer
+        input:
+          type: string
+          minLength: 1
