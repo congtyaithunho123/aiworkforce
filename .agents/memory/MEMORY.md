@@ -1,0 +1,1 @@
+- [Multi-Agent Workflow Architecture](workflow-arch.md) — workflows chạy PORT=8080 (API) + PORT=5173 (Frontend), vite proxy /api → localhost:8080
