@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
 import { rm } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -120,7 +121,37 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
   });
 }
 
-buildAll().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+const buildStart = Date.now();
+const logScript = path.resolve(artifactDir, "../../scripts/log-build.mjs");
+
+buildAll()
+  .then(() => {
+    const durationMs = String(Date.now() - buildStart);
+    try {
+      execFileSync("node", [
+        logScript,
+        "--package", "api-server",
+        "--status", "success",
+        "--durationMs", durationMs,
+        "--desc", "Express API — AI Workforce backend",
+      ], { stdio: "inherit" });
+    } catch {
+      // log failure should never block the build
+    }
+  })
+  .catch((err) => {
+    const durationMs = String(Date.now() - buildStart);
+    try {
+      execFileSync("node", [
+        logScript,
+        "--package", "api-server",
+        "--status", "failed",
+        "--durationMs", durationMs,
+        "--desc", err.message?.slice(0, 120) ?? "Build error",
+      ], { stdio: "inherit" });
+    } catch {
+      // ignore
+    }
+    console.error(err);
+    process.exit(1);
+  });
