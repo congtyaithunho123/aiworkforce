@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface AgentInput {
+export interface AgentNew {
   organizationId: number;
   /** @minLength 1 */
   name: string;

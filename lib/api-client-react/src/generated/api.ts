@@ -21,11 +21,13 @@ import type {
 
 import type {
   Agent,
-  AgentInput,
+  AgentNew,
   ErrorResponse,
   HealthStatus,
+  Organization,
+  OrganizationNew,
   Task,
-  TaskInput
+  TaskNew
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -118,6 +120,154 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+export const getCreateOrganizationUrl = () => {
+
+
+
+
+  return `/api/organizations`
+}
+
+/**
+ * @summary Create an organization
+ */
+export const createOrganization = async (organizationNew: OrganizationNew, options?: RequestInit): Promise<Organization> => {
+
+  return customFetch<Organization>(getCreateOrganizationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      organizationNew,)
+  }
+);}
+
+
+
+
+export const getCreateOrganizationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<OrganizationNew>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<OrganizationNew>}, TContext> => {
+
+const mutationKey = ['createOrganization'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOrganization>>, {data: BodyType<OrganizationNew>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOrganization(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOrganizationMutationResult = NonNullable<Awaited<ReturnType<typeof createOrganization>>>
+    export type CreateOrganizationMutationBody = BodyType<OrganizationNew>
+    export type CreateOrganizationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create an organization
+ */
+export const useCreateOrganization = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOrganization>>, TError,{data: BodyType<OrganizationNew>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createOrganization>>,
+        TError,
+        {data: BodyType<OrganizationNew>},
+        TContext
+      > => {
+      return useMutation(getCreateOrganizationMutationOptions(options));
+    }
+
+export const getListOrganizationsUrl = () => {
+
+
+
+
+  return `/api/organizations`
+}
+
+/**
+ * @summary List all organizations
+ */
+export const listOrganizations = async ( options?: RequestInit): Promise<Organization[]> => {
+
+  return customFetch<Organization[]>(getListOrganizationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOrganizationsQueryKey = () => {
+    return [
+    `/api/organizations`
+    ] as const;
+    }
+
+
+export const getListOrganizationsQueryOptions = <TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOrganizationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrganizations>>> = ({ signal }) => listOrganizations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListOrganizationsQueryResult = NonNullable<Awaited<ReturnType<typeof listOrganizations>>>
+export type ListOrganizationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all organizations
+ */
+
+export function useListOrganizations<TData = Awaited<ReturnType<typeof listOrganizations>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOrganizations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListOrganizationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getCreateAgentUrl = () => {
 
 
@@ -129,7 +279,7 @@ export const getCreateAgentUrl = () => {
 /**
  * @summary Create an AI agent
  */
-export const createAgent = async (agentInput: AgentInput, options?: RequestInit): Promise<Agent> => {
+export const createAgent = async (agentNew: AgentNew, options?: RequestInit): Promise<Agent> => {
 
   return customFetch<Agent>(getCreateAgentUrl(),
   {
@@ -137,7 +287,7 @@ export const createAgent = async (agentInput: AgentInput, options?: RequestInit)
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      agentInput,)
+      agentNew,)
   }
 );}
 
@@ -145,8 +295,8 @@ export const createAgent = async (agentInput: AgentInput, options?: RequestInit)
 
 
 export const getCreateAgentMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError,{data: BodyType<AgentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError,{data: BodyType<AgentInput>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError,{data: BodyType<AgentNew>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError,{data: BodyType<AgentNew>}, TContext> => {
 
 const mutationKey = ['createAgent'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -158,7 +308,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgent>>, {data: BodyType<AgentInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAgent>>, {data: BodyType<AgentNew>}> = (props) => {
           const {data} = props ?? {};
 
           return  createAgent(data,requestOptions)
@@ -172,18 +322,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateAgentMutationResult = NonNullable<Awaited<ReturnType<typeof createAgent>>>
-    export type CreateAgentMutationBody = BodyType<AgentInput>
+    export type CreateAgentMutationBody = BodyType<AgentNew>
     export type CreateAgentMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Create an AI agent
  */
 export const useCreateAgent = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError,{data: BodyType<AgentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAgent>>, TError,{data: BodyType<AgentNew>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createAgent>>,
         TError,
-        {data: BodyType<AgentInput>},
+        {data: BodyType<AgentNew>},
         TContext
       > => {
       return useMutation(getCreateAgentMutationOptions(options));
@@ -278,7 +428,7 @@ export const getCreateTaskUrl = () => {
  * Creates a task, runs the agent against it, and returns the result
  * @summary Create and execute a task
  */
-export const createTask = async (taskInput: TaskInput, options?: RequestInit): Promise<Task> => {
+export const createTask = async (taskNew: TaskNew, options?: RequestInit): Promise<Task> => {
 
   return customFetch<Task>(getCreateTaskUrl(),
   {
@@ -286,7 +436,7 @@ export const createTask = async (taskInput: TaskInput, options?: RequestInit): P
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      taskInput,)
+      taskNew,)
   }
 );}
 
@@ -294,8 +444,8 @@ export const createTask = async (taskInput: TaskInput, options?: RequestInit): P
 
 
 export const getCreateTaskMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: BodyType<TaskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: BodyType<TaskInput>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: BodyType<TaskNew>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: BodyType<TaskNew>}, TContext> => {
 
 const mutationKey = ['createTask'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -307,7 +457,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTask>>, {data: BodyType<TaskInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTask>>, {data: BodyType<TaskNew>}> = (props) => {
           const {data} = props ?? {};
 
           return  createTask(data,requestOptions)
@@ -321,18 +471,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreateTaskMutationResult = NonNullable<Awaited<ReturnType<typeof createTask>>>
-    export type CreateTaskMutationBody = BodyType<TaskInput>
+    export type CreateTaskMutationBody = BodyType<TaskNew>
     export type CreateTaskMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Create and execute a task
  */
 export const useCreateTask = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: BodyType<TaskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTask>>, TError,{data: BodyType<TaskNew>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof createTask>>,
         TError,
-        {data: BodyType<TaskInput>},
+        {data: BodyType<TaskNew>},
         TContext
       > => {
       return useMutation(getCreateTaskMutationOptions(options));

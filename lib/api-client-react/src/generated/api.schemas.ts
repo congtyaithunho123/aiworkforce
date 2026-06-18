@@ -9,6 +9,21 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface Organization {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganizationNew {
+  /** @minLength 1 */
+  name: string;
+  description?: string;
+}
+
 export interface ErrorResponse {
   error: string;
 }
@@ -24,7 +39,7 @@ export interface Agent {
   updatedAt: string;
 }
 
-export interface AgentInput {
+export interface AgentNew {
   organizationId: number;
   /** @minLength 1 */
   name: string;
@@ -51,7 +66,7 @@ export interface Task {
   updatedAt: string;
 }
 
-export interface TaskInput {
+export interface TaskNew {
   agentId: number;
   organizationId: number;
   /** @minLength 1 */

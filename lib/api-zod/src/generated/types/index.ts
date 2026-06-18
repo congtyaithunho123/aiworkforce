@@ -7,8 +7,10 @@
  */
 
 export * from './agent';
-export * from './agentInput';
+export * from './agentNew';
 export * from './errorResponse';
 export * from './healthStatus';
+export * from './organization';
+export * from './organizationNew';
 export * from './task';
-export * from './taskInput';
+export * from './taskNew';

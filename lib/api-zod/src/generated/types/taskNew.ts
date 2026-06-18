@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface TaskInput {
+export interface TaskNew {
   agentId: number;
   organizationId: number;
   /** @minLength 1 */

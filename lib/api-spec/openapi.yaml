@@ -29,6 +29,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  /organizations:
+    post:
+      operationId: createOrganization
+      tags: [organizations]
+      summary: Create an organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationNew"
+      responses:
+        "201":
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listOrganizations
+      tags: [organizations]
+      summary: List all organizations
+      responses:
+        "200":
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Organization"
+
   /agents:
     post:
       operationId: createAgent
@@ -39,7 +77,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AgentInput"
+              $ref: "#/components/schemas/AgentNew"
       responses:
         "201":
           description: Agent created
@@ -78,7 +116,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskInput"
+              $ref: "#/components/schemas/TaskNew"
       responses:
         "201":
           description: Task executed and result returned
@@ -134,6 +172,33 @@ components:
       required:
         - status
 
+    Organization:
+      type: object
+      required: [id, name, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrganizationNew:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+
     ErrorResponse:
       type: object
       required: [error]
@@ -164,7 +229,7 @@ components:
           type: string
           format: date-time
 
-    AgentInput:
+    AgentNew:
       type: object
       required: [organizationId, name, role, systemPrompt]
       properties:
@@ -209,7 +274,7 @@ components:
           type: string
           format: date-time
 
-    TaskInput:
+    TaskNew:
       type: object
       required: [agentId, organizationId, input]
       properties:

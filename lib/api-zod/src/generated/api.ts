@@ -18,6 +18,31 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Create an organization
+ */
+
+
+
+export const CreateOrganizationBody = zod.object({
+  "name": zod.string().min(1),
+  "description": zod.string().optional()
+})
+
+
+/**
+ * @summary List all organizations
+ */
+export const ListOrganizationsResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListOrganizationsResponse = zod.array(ListOrganizationsResponseItem)
+
+
+/**
  * @summary Create an AI agent
  */
 
