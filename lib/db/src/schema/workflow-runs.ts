@@ -2,9 +2,12 @@ import { pgTable, serial, text, integer, timestamp, real } from "drizzle-orm/pg-
 import { workflowsTable } from "./workflows";
 import { workflowStepsTable } from "./workflow-steps";
 import { agentsTable } from "./agents";
+import { organizationsTable } from "./organizations";
 
 export const workflowRunsTable = pgTable("workflow_runs", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id")
+    .references(() => organizationsTable.id, { onDelete: "cascade" }),
   workflowId: integer("workflow_id")
     .references(() => workflowsTable.id, { onDelete: "cascade" })
     .notNull(),

@@ -40,6 +40,7 @@ export async function runAgentTask(taskId: number): Promise<RunTaskResult> {
   const [execution] = await db
     .insert(executionsTable)
     .values({
+      organizationId: task.organizationId,
       taskId: task.id,
       agentId: agent.id,
       status: "running",

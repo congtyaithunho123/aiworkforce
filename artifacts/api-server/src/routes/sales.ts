@@ -81,6 +81,7 @@ router.post("/sales/leads", async (req, res) => {
 
     const inserted = await db.insert(contactsTable).values(
       output.leads.map((l) => ({
+        organizationId: orgId,
         companyId,
         name: l.name,
         title: l.title,
@@ -108,7 +109,8 @@ router.post("/sales/emails", async (req, res) => {
   const orgId = req.user!.organizationId;
   const { campaignId, contactIds } = parsed.data;
 
-  const [campaign] = await db.select().from(campaignsTable).where(eq(campaignsTable.id, campaignId));
+  const [campaign] = await db.select().from(campaignsTable)
+    .where(and(eq(campaignsTable.id, campaignId), eq(campaignsTable.organizationId, orgId)));
   if (!campaign) return res.status(404).json({ error: "Campaign not found" });
 
   const [company] = await db.select().from(companiesTable)
@@ -116,7 +118,11 @@ router.post("/sales/emails", async (req, res) => {
   if (!company) return res.status(404).json({ error: "Company not found" });
 
   const contacts = await db.select().from(contactsTable).where(
-    sql`${contactsTable.id} = ANY(${contactIds})`,
+    and(
+      sql`${contactsTable.id} = ANY(${contactIds})`,
+      eq(contactsTable.organizationId, orgId),
+      eq(contactsTable.companyId, campaign.companyId),
+    ),
   );
 
   let totalTokens = 0;
@@ -142,6 +148,7 @@ router.post("/sales/emails", async (req, res) => {
       totalCost += followUp.cost;
 
       const [leadEntry] = await db.insert(leadListsTable).values({
+        organizationId: orgId,
         campaignId,
         contactId: contact.id,
         emailSubject: outreach.output.subject,
@@ -185,6 +192,7 @@ router.post("/sales/campaign", async (req, res) => {
   if (!company) return res.status(404).json({ error: "Company not found" });
 
   const [campaign] = await db.insert(campaignsTable).values({
+    organizationId: orgId,
     companyId,
     name,
     workflowStep: "research",

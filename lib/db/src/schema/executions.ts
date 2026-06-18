@@ -3,9 +3,12 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { agentsTable } from "./agents";
 import { tasksTable } from "./tasks";
+import { organizationsTable } from "./organizations";
 
 export const executionsTable = pgTable("executions", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id")
+    .references(() => organizationsTable.id, { onDelete: "cascade" }),
   taskId: integer("task_id")
     .references(() => tasksTable.id, { onDelete: "cascade" })
     .notNull(),

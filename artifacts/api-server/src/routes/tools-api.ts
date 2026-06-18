@@ -35,7 +35,7 @@ router.post("/tools", async (req, res): Promise<void> => {
 router.post("/tools/execute", async (req, res): Promise<void> => {
   const body = z.object({
     name: z.string().min(1),
-    args: z.record(z.unknown()).optional().default({}),
+    args: z.record(z.string(), z.unknown()).optional().default({}),
   }).safeParse(req.body);
 
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }

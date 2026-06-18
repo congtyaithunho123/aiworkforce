@@ -2,9 +2,12 @@ import { pgTable, serial, integer, text, timestamp, jsonb } from "drizzle-orm/pg
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { marketingProjectsTable } from "./marketing-projects";
+import { organizationsTable } from "./organizations";
 
 export const marketingKeywordsTable = pgTable("marketing_keywords", {
   id: serial("id").primaryKey(),
+  organizationId: integer("organization_id")
+    .references(() => organizationsTable.id, { onDelete: "cascade" }),
   projectId: integer("project_id").references(() => marketingProjectsTable.id, { onDelete: "cascade" }).notNull().unique(),
   primaryKeyword: text("primary_keyword"),
   secondaryKeywords: jsonb("secondary_keywords").$type<string[]>().default([]),

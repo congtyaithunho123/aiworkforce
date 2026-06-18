@@ -73,6 +73,7 @@ router.post("/marketing/research", async (req, res) => {
       }).where(eq(marketingResearchTable.projectId, project.id)).returning();
     } else {
       [research] = await db.insert(marketingResearchTable).values({
+        organizationId: orgId,
         projectId: project.id,
         marketTrends: output.marketTrends,
         targetPersonas: output.targetPersonas,
@@ -131,6 +132,7 @@ router.post("/marketing/keywords", async (req, res) => {
       }).where(eq(marketingKeywordsTable.projectId, project.id)).returning();
     } else {
       [keywords] = await db.insert(marketingKeywordsTable).values({
+        organizationId: orgId,
         projectId: project.id,
         primaryKeyword: output.primaryKeyword,
         secondaryKeywords: output.secondaryKeywords,
@@ -208,6 +210,7 @@ router.post("/marketing/content", async (req, res) => {
       }).where(eq(marketingContentTable.projectId, project.id)).returning();
     } else {
       [content] = await db.insert(marketingContentTable).values({
+        organizationId: orgId,
         projectId: project.id,
         title: output.title,
         slug: output.slug,

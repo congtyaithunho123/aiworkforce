@@ -53,6 +53,7 @@ export async function runWorkflow(
   const [workflowRun] = await db
     .insert(workflowRunsTable)
     .values({
+      organizationId: workflow.organizationId,
       workflowId,
       status: "running",
       input: userInput,
