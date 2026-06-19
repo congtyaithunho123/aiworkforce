@@ -32,3 +32,7 @@ export * from "./agent-templates";
 export * from "./workflow-templates";
 export * from "./prompt-versions";
 export * from "./marketing-leads";
+export * from "./customers";
+export * from "./deals";
+export * from "./activities";
+export * from "./referrals";

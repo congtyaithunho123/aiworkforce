@@ -105,11 +105,16 @@ export async function register(data: {
   email: string;
   password: string;
   organizationName: string;
+  referralCode?: string;
 }): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE}/auth/register`, {
+  const { referralCode, ...body } = data;
+  const url = referralCode
+    ? `${API_BASE}/auth/register?ref=${encodeURIComponent(referralCode)}`
+    : `${API_BASE}/auth/register`;
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useSearch } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { BrainCircuit, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { register } = useAuth();
   const [form, setForm] = useState({
     name: "",
@@ -17,6 +18,13 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const ref = params.get("ref");
+    if (ref) setReferralCode(ref.toUpperCase());
+  }, [search]);
 
   const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -26,7 +34,7 @@ export default function RegisterPage() {
     setError(null);
     setIsLoading(true);
     try {
-      await register(form);
+      await register({ ...form, referralCode: referralCode ?? undefined });
       setLocation("/onboarding");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -47,6 +55,11 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {referralCode && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg px-4 py-3 text-sm text-amber-300 flex items-center gap-2">
+              🎁 <span>Mã giới thiệu <span className="font-mono font-bold">{referralCode}</span> được áp dụng — bạn sẽ nhận thêm 7 ngày trial!</span>
+            </div>
+          )}
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-sm text-red-400">
               {error}

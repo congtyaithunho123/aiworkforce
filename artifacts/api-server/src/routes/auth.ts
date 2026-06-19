@@ -59,6 +59,7 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }
 
   const { name, email, password, organizationName } = parsed.data;
+  const referralCode = (req.query.ref as string | undefined)?.toUpperCase();
 
   const [existingUser] = await db
     .select()
@@ -70,9 +71,12 @@ router.post("/auth/register", async (req, res): Promise<void> => {
     return;
   }
 
+  // Set trial: 7 days from now + 100 free tasks
+  const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
   const [org] = await db
     .insert(organizationsTable)
-    .values({ name: organizationName })
+    .values({ name: organizationName, trialEndsAt, freeTasksRemaining: 100 })
     .returning();
 
   const passwordHash = await hashPassword(password);
@@ -87,6 +91,51 @@ router.post("/auth/register", async (req, res): Promise<void> => {
       organizationId: org.id,
     })
     .returning();
+
+  // Process referral code if provided
+  if (referralCode) {
+    try {
+      const { referralsTable } = await import("@workspace/db");
+      const [referral] = await db
+        .select()
+        .from(referralsTable)
+        .where(eq(referralsTable.code, referralCode));
+
+      if (referral && referral.userId !== user.id) {
+        const BONUS_DAYS = 7;
+        const referredUserIds: number[] = JSON.parse(referral.referredUserIds);
+
+        if (!referredUserIds.includes(user.id)) {
+          // Add bonus to new user's org
+          const newEnd = new Date(trialEndsAt.getTime() + BONUS_DAYS * 24 * 60 * 60 * 1000);
+          await db
+            .update(organizationsTable)
+            .set({ trialEndsAt: newEnd })
+            .where(eq(organizationsTable.id, org.id));
+
+          // Add bonus to referrer's org
+          const [referrerUser] = await db.select().from(usersTable).where(eq(usersTable.id, referral.userId));
+          if (referrerUser) {
+            const [referrerOrg] = await db.select().from(organizationsTable).where(eq(organizationsTable.id, referrerUser.organizationId));
+            if (referrerOrg) {
+              const currentEnd = referrerOrg.trialEndsAt ?? new Date();
+              const referrerNewEnd = new Date(Math.max(currentEnd.getTime(), Date.now()) + BONUS_DAYS * 24 * 60 * 60 * 1000);
+              await db.update(organizationsTable).set({ trialEndsAt: referrerNewEnd }).where(eq(organizationsTable.id, referrerOrg.id));
+            }
+          }
+
+          // Update referral record
+          referredUserIds.push(user.id);
+          await db
+            .update(referralsTable)
+            .set({ referredUserIds: JSON.stringify(referredUserIds), trialDaysAdded: referral.trialDaysAdded + BONUS_DAYS })
+            .where(eq(referralsTable.id, referral.id));
+        }
+      }
+    } catch (e) {
+      req.log.warn({ referralCode }, "Failed to process referral code");
+    }
+  }
 
   const accessToken = generateAccessToken({
     userId: user.id,

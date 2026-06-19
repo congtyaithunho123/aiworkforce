@@ -21,12 +21,14 @@ import LandingPricing from "@/pages/landing-pricing";
 import LandingDemo from "@/pages/landing-demo";
 import LandingDemoResult from "@/pages/landing-demo-result";
 import LandingContact from "@/pages/landing-contact";
+import CRMPage from "@/pages/crm";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
+import { TrialBanner } from "@/components/TrialBanner";
 import {
   GitMerge, Map, LayoutDashboard, Zap, Megaphone, LogOut, User,
-  CreditCard, Settings, Bell, X, Check, Store
+  CreditCard, Settings, Bell, X, Check, Store, Briefcase
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -155,6 +157,7 @@ function AppNav() {
     { href: "/workflows", label: "Workflows", Icon: GitMerge },
     { href: "/sales", label: "AI SDR", Icon: Zap },
     { href: "/marketing", label: "Marketing", Icon: Megaphone },
+    { href: "/crm", label: "CRM", Icon: Briefcase },
     { href: "/marketplace", label: "Marketplace", Icon: Store },
     { href: "/billing", label: "Billing", Icon: CreditCard },
     { href: "/settings", label: "Settings", Icon: Settings },
@@ -227,13 +230,15 @@ function AppRouter() {
       <Route>
         <ProtectedRoute>
           <AppNav />
-          <div className="pt-12">
+          <TrialBanner />
+          <div className="pt-12 pb-12">
             <Switch>
               <Route path="/roadmap" component={Home} />
               <Route path="/dashboard" component={DashboardPage} />
               <Route path="/workflows" component={WorkflowsPage} />
               <Route path="/sales" component={SalesPage} />
               <Route path="/marketing" component={MarketingPage} />
+              <Route path="/crm" component={CRMPage} />
               <Route path="/marketplace" component={MarketplacePage} />
               <Route path="/billing" component={BillingPage} />
               <Route path="/settings" component={SettingsPage} />

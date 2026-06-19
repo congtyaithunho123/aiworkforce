@@ -15,6 +15,9 @@ export const organizationsTable = pgTable("organizations", {
   monthlyBudget: real("monthly_budget"),              // USD, null = unlimited
   budgetWarningThreshold: integer("budget_warning_threshold").notNull().default(80), // percent
   stopOnBudgetExceed: boolean("stop_on_budget_exceed").notNull().default(false),
+  // Trial system
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  freeTasksRemaining: integer("free_tasks_remaining").notNull().default(100),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

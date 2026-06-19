@@ -26,6 +26,9 @@ import costControlRouter from "./cost-control";
 import { authenticate } from "../middleware/authenticate";
 import publicLeadsRouter from "./public-leads";
 import publicDemoRouter from "./public-demo";
+import trialRouter from "./trial";
+import referralRouter from "./referral";
+import crmRouter from "./crm";
 
 const router: IRouter = Router();
 
@@ -58,5 +61,8 @@ router.use(agentTemplatesRouter);
 router.use(workflowTemplatesRouter);
 router.use(promptVersionsRouter);
 router.use(costControlRouter);
+router.use(trialRouter);
+router.use(referralRouter);
+router.use(crmRouter);
 
 export default router;

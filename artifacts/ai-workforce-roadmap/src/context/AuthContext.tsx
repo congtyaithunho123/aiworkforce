@@ -22,7 +22,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { name: string; email: string; password: string; organizationName: string }) => Promise<void>;
+  register: (data: { name: string; email: string; password: string; organizationName: string; referralCode?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user, organization, isAuthenticated: true, isLoading: false });
   }, []);
 
-  const register = useCallback(async (data: { name: string; email: string; password: string; organizationName: string }) => {
+  const register = useCallback(async (data: { name: string; email: string; password: string; organizationName: string; referralCode?: string }) => {
     const { accessToken, refreshToken, user, organization } = await authRegister(data);
     setTokens(accessToken, refreshToken);
     setStoredUser(user);
