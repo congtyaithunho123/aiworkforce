@@ -4,3 +4,4 @@
 - [Auth + Multi-tenant Foundation](auth-architecture.md) — JWT auth, refresh tokens, Express namespace augmentation, tenant isolation via req.user.organizationId
 - [SaaS Features Layer](saas-features.md) — subscription system, billing, API key mgmt, audit log, notifications, onboarding wizard — all built and deployed
 - [Production-Ready Upgrade](production-ready.md) — pg-boss job queue, SSE real-time, metrics, agent eval, prompt versioning, marketplace, cost control
+- [AI Key Routing](ai-key-routing.md) — OPENAI_API_KEY may be a Groq key (gsk_); ai-service.ts auto-routes to correct provider + model

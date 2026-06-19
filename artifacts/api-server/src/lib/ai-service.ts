@@ -6,7 +6,20 @@ if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY must be set");
 }
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const apiKey = process.env.OPENAI_API_KEY!;
+const isGroqKey   = apiKey.startsWith("gsk_");
+const isGeminiKey = apiKey.startsWith("AIza");
+
+function getBaseURL(): string | undefined {
+  if (isGroqKey)   return "https://api.groq.com/openai/v1";
+  if (isGeminiKey) return "https://generativelanguage.googleapis.com/v1beta/openai/";
+  return undefined;
+}
+
+const openai = new OpenAI({
+  apiKey,
+  ...(getBaseURL() ? { baseURL: getBaseURL() } : {}),
+});
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -53,11 +66,32 @@ function buildDynamicZodSchema(schemaSpec: Record<string, string>): z.ZodObject<
   return z.object(shape);
 }
 
+const GROQ_MODEL_MAP: Record<string, string> = {
+  "gpt-4o":        "llama-3.3-70b-versatile",
+  "gpt-4o-mini":   "llama-3.1-8b-instant",
+  "gpt-4-turbo":   "llama-3.3-70b-versatile",
+  "gpt-3.5-turbo": "llama-3.1-8b-instant",
+};
+
+const GEMINI_MODEL_MAP: Record<string, string> = {
+  "gpt-4o":        "gemini-2.0-flash",
+  "gpt-4o-mini":   "gemini-2.0-flash",
+  "gpt-4-turbo":   "gemini-1.5-pro",
+  "gpt-3.5-turbo": "gemini-1.5-flash",
+};
+
+function resolveModel(requested: string): string {
+  if (isGroqKey)   return GROQ_MODEL_MAP[requested]   ?? "llama-3.1-8b-instant";
+  if (isGeminiKey) return GEMINI_MODEL_MAP[requested] ?? "gemini-2.0-flash";
+  return requested;
+}
+
 export async function runCompletion(
   messages: ChatMessage[],
   options: AICompletionOptions = {},
 ): Promise<AICompletionResult> {
-  const { model = "gpt-4o-mini", outputFormat = "text", outputSchema } = options;
+  const { model: requestedModel = "gpt-4o-mini", outputFormat = "text", outputSchema } = options;
+  const model = resolveModel(requestedModel);
   const isJson = outputFormat === "json";
 
   logger.debug({ model, messageCount: messages.length, outputFormat }, "Running AI completion");
