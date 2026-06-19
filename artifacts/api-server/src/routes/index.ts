@@ -31,6 +31,7 @@ import referralRouter from "./referral";
 import crmRouter from "./crm";
 import kpiRouter from "./kpi";
 import emailAutomationRouter from "./email-automation";
+import marketplaceStoreRouter from "./marketplace-store";
 
 const router: IRouter = Router();
 
@@ -68,5 +69,6 @@ router.use(referralRouter);
 router.use(crmRouter);
 router.use(kpiRouter);
 router.use(emailAutomationRouter);
+router.use(marketplaceStoreRouter);
 
 export default router;

@@ -37,3 +37,7 @@ export * from "./deals";
 export * from "./activities";
 export * from "./referrals";
 export * from "./email-sequence-logs";
+export * from "./marketplace-agents";
+export * from "./marketplace-workflows";
+export * from "./reviews";
+export * from "./creator-payouts";
