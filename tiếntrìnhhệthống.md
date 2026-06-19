@@ -156,13 +156,38 @@ Marketing      Sales            HR
 
 ## Trạng thái xây dựng
 
-| Hạng mục | Trạng thái |
+### ✅ Đã hoàn thành
+
+| Chức năng | Mô tả |
 |---|---|
-| Web app roadmap visualization | Đang xây dựng |
-| API Server | Hoạt động |
-| Database schema | Chưa cần (presentation app) |
-| File tiếntrìnhhệthống.md | Hoàn thành |
+| **Database Schema** | Drizzle ORM — organizations, agents, tasks, memories, executions, refresh_tokens, password_reset_tokens |
+| **API Spec & Codegen** | OpenAPI 3.1 spec + Orval — tự động sinh Zod schemas & React Query hooks |
+| **AI Workforce Roadmap (Frontend)** | React + Vite — lộ trình 6 giai đoạn 2026–2032, checklist, notes, localStorage |
+| **API Server v1 — Core** | Express 5 — organizations, agents, tasks, memories — REST API + OpenAI integration |
+| **API Server v2 — Worker** | Background worker — structured JSON output, memory summarization, executions table |
+| **Auth System** | JWT + bcrypt — đăng ký, đăng nhập, refresh token, quên mật khẩu, multi-tenant |
+| **AI Sales Team (SDR)** | 4 bảng DB, 4 agents (Lead Research, Outreach, Follow-up, CRM), 12 API routes, trang /sales |
+| **AI Marketing Team** | 4 bảng DB, 5 agents (Research, Content, Image, Scheduler, Analytics), 11 routes, trang /marketing |
+
+### 🔄 Đang chạy
+
+| Dịch vụ | Cổng | Trạng thái |
+|---|---|---|
+| API Server | 8080 | ✅ Running |
+| Frontend (React Vite) | 5173 | ✅ Running |
+| PostgreSQL Database | — | ✅ Connected |
+
+### 📋 Chưa xây dựng
+
+| Chức năng | Giai đoạn |
+|---|---|
+| AI HR Team | Giai đoạn 2 |
+| AI Accounting Team | Giai đoạn 2 |
+| AI Customer Support Team | Giai đoạn 2 |
+| Task Router tự động | Giai đoạn 3 |
+| Shared Memory Layer | Giai đoạn 3 |
+| Agent Registry (Marketplace) | Giai đoạn 4+ |
 
 ---
 
-*Cập nhật lần cuối: 18/06/2026*
+*Cập nhật lần cuối: 20/06/2026*
