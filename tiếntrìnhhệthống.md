@@ -158,35 +158,50 @@ Marketing      Sales            HR
 
 ### ✅ Đã hoàn thành
 
-| Chức năng | Mô tả |
-|---|---|
-| **Database Schema** | Drizzle ORM — organizations, agents, tasks, memories, executions, refresh_tokens, password_reset_tokens |
-| **API Spec & Codegen** | OpenAPI 3.1 spec + Orval — tự động sinh Zod schemas & React Query hooks |
-| **AI Workforce Roadmap (Frontend)** | React + Vite — lộ trình 6 giai đoạn 2026–2032, checklist, notes, localStorage |
-| **API Server v1 — Core** | Express 5 — organizations, agents, tasks, memories — REST API + OpenAI integration |
-| **API Server v2 — Worker** | Background worker — structured JSON output, memory summarization, executions table |
-| **Auth System** | JWT + bcrypt — đăng ký, đăng nhập, refresh token, quên mật khẩu, multi-tenant |
-| **AI Sales Team (SDR)** | 4 bảng DB, 4 agents (Lead Research, Outreach, Follow-up, CRM), 12 API routes, trang /sales |
-| **AI Marketing Team** | 4 bảng DB, 5 agents (Research, Content, Image, Scheduler, Analytics), 11 routes, trang /marketing |
+| Chức năng | Tên kỹ thuật | Mô tả |
+|---|---|---|
+| **Database Schema** | `@workspace/db` | Drizzle ORM — organizations, agents, tasks, memories, executions, refresh_tokens, password_reset_tokens |
+| **API Spec & Codegen** | `@workspace/api-spec` | OpenAPI 3.1 spec + Orval — tự động sinh Zod schemas & React Query hooks |
+| **AI Workforce Roadmap (Frontend)** | `@workspace/ai-workforce-roadmap` | React + Vite — lộ trình 6 giai đoạn 2026–2032, checklist, notes, localStorage |
+| **API Server Core** | `@workspace/api-server` v1 | Express 5 — organizations, agents, tasks, memories — REST API + OpenAI integration |
+| **Background Worker** | `@workspace/api-server` v2 | Background worker — structured JSON output, memory summarization, executions table |
+| **Authentication System** | `routes/auth` + `middleware/authenticate` | JWT + bcrypt — đăng ký, đăng nhập, refresh token, quên mật khẩu |
+| **Role-Based Access Control** | `middleware/require-role` | Roles: Owner / Admin / Member — bảo vệ routes theo quyền |
+| **Multi-Tenant Isolation** | DB schema + middleware | organizationId bắt buộc trên: agents, workflows, tasks, executions, campaigns, leads, memories |
+| **Usage Tracking** | `executions` table + `analytics` routes | Theo dõi prompt_tokens, completion_tokens, estimated_cost theo từng execution |
+| **Workspace Dashboard** | `pages/dashboard.tsx` | Tổng quan AI Employees, Workflows, Campaigns, Leads, chi phí AI |
+| **Analytics (Cost & Token)** | `routes/analytics` + Dashboard tab | Biểu đồ token sử dụng, chi phí ước tính — tích hợp trong Workspace Dashboard |
+| **AI Sales Team — SDR** | `routes/sales-*` + `/sales` page | 4 bảng DB, 4 agents (Lead Research, Outreach, Follow-up, CRM), 12 API routes |
+| **AI Marketing Team** | `routes/marketing-*` + `/marketing` page | 4 bảng DB, 5 agents (Research, Content, Image, Scheduler, Analytics), 11 routes |
 
-### 🔄 Đang chạy
+### ⚠️ Xây một phần
+
+| Chức năng | Tên kỹ thuật | Còn thiếu |
+|---|---|---|
+| **Billing Dashboard** | Dashboard tab "Analytics" | Có hiển thị token/cost nhưng chưa có quản lý gói, thanh toán, quota limit |
+
+### ❌ Chưa xây dựng (SaaS roadmap)
+
+| # | Chức năng | Tên kỹ thuật dự kiến | Mô tả |
+|---|---|---|---|
+| 1 | **Subscription System** | `plans` + `subscriptions` + `usage_records` tables | Gói Starter / Growth / Enterprise, giới hạn quota |
+| 2 | **API Key Management** | `provider_keys` table + `/settings/api-keys` | Người dùng nhập OpenAI key riêng hoặc dùng key hệ thống |
+| 3 | **Audit Log** | `audit_logs` table + middleware | Ghi lại user action, agent action, workflow action |
+| 4 | **Notifications** | `notifications` table + SSE/WebSocket | Thông báo workflow hoàn thành, task thất bại, quota sắp hết |
+| 5 | **Onboarding Wizard** | `pages/onboarding.tsx` | 4 bước: chọn ngành → nhập website → chọn AI Team → tạo workspace |
+| 6 | **AI HR Team** | `routes/hr-*` + `/hr` page | CV Screening, Interview, Onboarding agents |
+| 7 | **AI Accounting Team** | `routes/accounting-*` + `/accounting` page | Invoice, Expense, Tax agents |
+| 8 | **AI Customer Support Team** | `routes/support-*` + `/support` page | Ticket, FAQ, Escalation agents |
+| 9 | **Task Router tự động** | `lib/task-router` | Tự động phân công việc dựa trên yêu cầu |
+| 10 | **Agent Registry (Marketplace)** | `pages/marketplace.tsx` | Mua và triển khai AI Workers từ bên thứ ba |
+
+### 🔄 Dịch vụ đang chạy
 
 | Dịch vụ | Cổng | Trạng thái |
 |---|---|---|
 | API Server | 8080 | ✅ Running |
 | Frontend (React Vite) | 5173 | ✅ Running |
 | PostgreSQL Database | — | ✅ Connected |
-
-### 📋 Chưa xây dựng
-
-| Chức năng | Giai đoạn |
-|---|---|
-| AI HR Team | Giai đoạn 2 |
-| AI Accounting Team | Giai đoạn 2 |
-| AI Customer Support Team | Giai đoạn 2 |
-| Task Router tự động | Giai đoạn 3 |
-| Shared Memory Layer | Giai đoạn 3 |
-| Agent Registry (Marketplace) | Giai đoạn 4+ |
 
 ---
 
