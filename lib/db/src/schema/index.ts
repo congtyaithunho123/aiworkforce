@@ -47,3 +47,4 @@ export * from "./teams";
 export * from "./shared-memories";
 export * from "./workforce-events";
 export * from "./federation";
+export * from "./collaboration";

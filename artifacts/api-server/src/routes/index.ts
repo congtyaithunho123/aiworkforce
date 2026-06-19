@@ -36,6 +36,7 @@ import workforceCloudRouter from "./workforce-cloud";
 import workforceGraphRouter from "./workforce-graph";
 import workforceMonitoringRouter from "./workforce-monitoring";
 import workforceFederationRouter from "./workforce-federation";
+import workforceCollaborationRouter from "./workforce-collaboration";
 
 const router: IRouter = Router();
 
@@ -78,5 +79,6 @@ router.use(workforceCloudRouter);
 router.use(workforceGraphRouter);
 router.use(workforceMonitoringRouter);
 router.use(workforceFederationRouter);
+router.use(workforceCollaborationRouter);
 
 export default router;

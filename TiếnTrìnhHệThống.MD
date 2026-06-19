@@ -1,3 +1,14 @@
+# Tiến Trình Hệ Thống
+
+_Log tự động — ghi lại mỗi lần build thành công_
+
+---
+
+## 05:29:31 20/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 798ms
+- **Mô tả:** Express API — AI Workforce backend
+
 ## 05:17:46 20/06/2026 — `api-server`
 - **Trạng thái:** ✅ Thành công
 - **Thời gian build:** 672ms
@@ -8,6 +19,34 @@
 - **Agent Analytics Dashboard riêng** — trang thống kê chi tiết cho từng agent đã publish: lượt cài đặt theo ngày, doanh thu, rating trung bình, top reviews
 - **Workflow Publisher** — tương tự Publish Agent nhưng cho Workflow (multi-agent pipeline), publish toàn bộ workflow lên store
 - **Notification Center** — trung tâm thông báo real-time: khi agent được cài đặt, khi có review mới, khi có task cần duyệt
+
+---
+
+## ✅ 22:29:31 19/06/2026 — `Agent-to-Agent Collaborative Task Execution`
+- **Trạng thái:** ✅ Build xong — API Server 640ms, no errors
+- **Tính năng:** Agents tự động hợp tác xử lý task phức tạp
+- **DB Tables mới (2 bảng):**
+  - `collaboration_sessions` — theo dõi toàn bộ session, progress, aggregated result
+  - `collaboration_subtasks` — mỗi sub-task với agent được assign, message ID, result
+- **Backend (`workforce-collaboration.ts`, 5 endpoints):**
+  - `POST /api/workforce/collaborate` — DecomposeTask() → Route → Bus → Aggregate
+  - `GET /api/workforce/collaborate` — list sessions
+  - `GET /api/workforce/collaborate/:id` — session + subtasks detail
+  - `PATCH /api/workforce/collaborate/:sessionId/subtasks/:subtaskId` — update result
+  - `GET /api/workforce/collaborate/stats` — statistics
+- **Luồng thực tế:**
+  1. Task → `decomposeTask()` phân tích keyword → N sub-tasks theo capability
+  2. Mỗi sub-task → `findBestAgent()` tìm agent phù hợp từ Registry
+  3. Gửi message qua Agent Bus (agent_messages) → status "delivered"
+  4. Agents xử lý song song → kết quả ghi vào collaboration_subtasks
+  5. Aggregator tổng hợp → `aggregatedResult` trong collaboration_sessions
+  6. Emit COLLABORATION_COMPLETED event → monitoring auto-update
+- **Frontend:** Tab "Collaborate" trong /workforce:
+  - Hero input + 3 example tasks
+  - Real-time flow diagram: Task → Router → Agents → Aggregator
+  - Sub-task cards với agent name, duration, result
+  - Aggregated result viewer
+  - Session history với progress bar
 
 ---
 

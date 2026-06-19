@@ -6,7 +6,8 @@ import {
   Activity, MessageSquare, Brain, Zap, Network, Shield,
   AlertTriangle, CheckCircle2, Clock, TrendingUp, Server,
   GitMerge, Users, Globe, ChevronRight, RefreshCw, Send,
-  Database, Route, Star,
+  Database, Route, Star, Layers, Sparkles, ArrowRight,
+  Loader2, BarChart2, Play,
 } from "lucide-react";
 
 const fade = {
@@ -122,9 +123,44 @@ const EVENT_ICON: Record<string, React.ElementType> = {
   CAPABILITY_ROUTED: Route,
   FEDERATION_LINKED: Globe,
   FEDERATION_REQUEST: Globe,
+  COLLABORATION_STARTED: Layers,
+  COLLABORATION_COMPLETED: CheckCircle2,
+  SUBTASK_ROUTED: Route,
+  SUBTASK_COMPLETED: CheckCircle2,
 };
 
-type Tab = "monitoring" | "bus" | "registry" | "router" | "memory" | "events" | "graph" | "federation" | "sdk";
+interface CollaborationSubtask {
+  id: number;
+  subtask: string;
+  capability: string;
+  assignedAgentName: string | null;
+  status: string;
+  result: string | null;
+  errorMessage: string | null;
+  durationMs: number | null;
+  createdAt: string;
+}
+
+interface CollaborationSession {
+  id: number;
+  title: string;
+  originalTask: string;
+  status: string;
+  totalSubtasks: number;
+  completedSubtasks: number;
+  failedSubtasks: number;
+  progressPct: number;
+  aggregatedResult: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+interface CollaborateResult {
+  session: CollaborationSession;
+  subtasks: CollaborationSubtask[];
+}
+
+type Tab = "monitoring" | "collaborate" | "bus" | "registry" | "router" | "memory" | "events" | "graph" | "federation" | "sdk";
 
 export default function WorkforcePage() {
   const [tab, setTab] = useState<Tab>("monitoring");
@@ -141,6 +177,9 @@ export default function WorkforcePage() {
   const [regCaps, setRegCaps] = useState("");
   const [regVersion, setRegVersion] = useState("1.0.0");
   const [graphView, setGraphView] = useState<"tree" | "list">("tree");
+  const [collabTask, setCollabTask] = useState("");
+  const [collabResult, setCollabResult] = useState<CollaborateResult | null>(null);
+  const [collabSelectedId, setCollabSelectedId] = useState<number | null>(null);
 
   const qc = useQueryClient();
 
@@ -242,10 +281,39 @@ export default function WorkforcePage() {
     },
   });
 
+  const { data: collabSessions } = useQuery<{ sessions: CollaborationSession[] }>({
+    queryKey: ["workforce-collaborate"],
+    queryFn: () => apiFetch("/api/workforce/collaborate"),
+    enabled: tab === "collaborate",
+    refetchInterval: 8000,
+  });
+
+  const { data: collabDetail } = useQuery<CollaborateResult>({
+    queryKey: ["workforce-collaborate-detail", collabSelectedId],
+    queryFn: () => apiFetch(`/api/workforce/collaborate/${collabSelectedId}`),
+    enabled: !!collabSelectedId,
+  });
+
+  const collaborateMut = useMutation({
+    mutationFn: () => apiFetch("/api/workforce/collaborate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task: collabTask }),
+    }),
+    onSuccess: (data) => {
+      setCollabResult(data as CollaborateResult);
+      setCollabSelectedId((data as CollaborateResult).session.id);
+      qc.invalidateQueries({ queryKey: ["workforce-collaborate"] });
+      qc.invalidateQueries({ queryKey: ["workforce-monitoring"] });
+      setCollabTask("");
+    },
+  });
+
   const snap = monitoring?.snapshot;
 
   const tabs: { key: Tab; label: string; icon: React.ElementType }[] = [
     { key: "monitoring", label: "Monitoring", icon: Activity },
+    { key: "collaborate", label: "Collaborate", icon: Sparkles },
     { key: "bus", label: "Message Bus", icon: MessageSquare },
     { key: "registry", label: "Registry", icon: Database },
     { key: "router", label: "Capability Router", icon: Route },
@@ -392,6 +460,268 @@ export default function WorkforcePage() {
               </div>
             </motion.div>
           )}
+        </div>
+      )}
+
+      {/* ── COLLABORATE TAB ── */}
+      {tab === "collaborate" && (
+        <div className="space-y-6">
+          {/* Hero input */}
+          <motion.div initial="hidden" animate="visible" variants={fade}
+            className="relative bg-gradient-to-br from-emerald-950/60 to-black border border-emerald-500/20 rounded-2xl p-6 overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.08),transparent_60%)]" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-base font-bold text-white">Agent-to-Agent Collaborative Execution</h3>
+              </div>
+              <p className="text-xs text-slate-400 mb-5 leading-relaxed">
+                Nhập một task phức tạp — hệ thống tự động phân tách thành sub-tasks, 
+                route từng sub-task đến agent có capability phù hợp nhất qua Message Bus, 
+                rồi tổng hợp kết quả từ tất cả agents.
+              </p>
+              <div className="flex gap-3">
+                <input
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500/50 transition-colors"
+                  placeholder="vd: Tìm lead logistics tại HCMC, viết email outreach và tạo content LinkedIn campaign..."
+                  value={collabTask}
+                  onChange={(e) => setCollabTask(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && collabTask.length >= 5 && !collaborateMut.isPending && collaborateMut.mutate()}
+                />
+                <button
+                  onClick={() => collaborateMut.mutate()}
+                  disabled={collabTask.length < 5 || collaborateMut.isPending}
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 text-black text-sm font-bold hover:bg-emerald-400 disabled:opacity-40 transition-all"
+                >
+                  {collaborateMut.isPending
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang xử lý...</>
+                    : <><Play className="w-4 h-4" /> Chạy</>}
+                </button>
+              </div>
+
+              {/* Example tasks */}
+              <div className="flex flex-wrap gap-2 mt-3">
+                {[
+                  "Tìm lead + viết email + tạo content LinkedIn",
+                  "Research competitor + viết blog post + báo cáo SEO",
+                  "Campaign marketing + analytics dashboard + CRM update",
+                ].map((ex) => (
+                  <button key={ex}
+                    onClick={() => setCollabTask(ex)}
+                    className="text-xs px-2.5 py-1 bg-white/5 text-slate-500 hover:text-slate-300 hover:bg-white/10 rounded-lg transition-colors"
+                  >{ex}</button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Live result from latest run */}
+          {(collabResult || collabDetail) && (() => {
+            const activeResult = collabDetail ?? collabResult!;
+            const session = activeResult.session;
+            const subtasks = activeResult.subtasks;
+            const statusColor = session.status === "completed" ? "emerald" :
+              session.status === "partial" ? "amber" : session.status === "failed" ? "rose" : "blue";
+            const statusLabel = session.status === "completed" ? "✅ Hoàn thành" :
+              session.status === "partial" ? "⚠️ Một phần" : session.status === "failed" ? "❌ Thất bại" : "⏳ Đang chạy";
+            return (
+              <motion.div key={session.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                className={`border rounded-2xl overflow-hidden ${
+                  statusColor === "emerald" ? "border-emerald-500/20" :
+                  statusColor === "amber" ? "border-amber-500/20" :
+                  statusColor === "rose" ? "border-rose-500/20" : "border-blue-500/20"
+                }`}>
+                {/* Session header */}
+                <div className={`px-5 py-4 flex items-center justify-between ${
+                  statusColor === "emerald" ? "bg-emerald-950/40" :
+                  statusColor === "amber" ? "bg-amber-950/40" :
+                  statusColor === "rose" ? "bg-rose-950/40" : "bg-blue-950/40"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <Layers className={`w-4 h-4 ${statusColor === "emerald" ? "text-emerald-400" : statusColor === "amber" ? "text-amber-400" : statusColor === "rose" ? "text-rose-400" : "text-blue-400"}`} />
+                    <div>
+                      <p className="text-sm font-bold text-white">{session.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Session #{session.id} · {new Date(session.createdAt).toLocaleString("vi-VN")}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slate-400">{session.completedSubtasks}/{session.totalSubtasks} tasks</span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      statusColor === "emerald" ? "bg-emerald-500/15 text-emerald-400" :
+                      statusColor === "amber" ? "bg-amber-500/15 text-amber-400" :
+                      statusColor === "rose" ? "bg-rose-500/15 text-rose-400" : "bg-blue-500/15 text-blue-400"
+                    }`}>{statusLabel}</span>
+                  </div>
+                </div>
+
+                {/* Progress bar */}
+                <div className="h-1 bg-white/5">
+                  <div
+                    className={`h-full transition-all duration-1000 ${statusColor === "emerald" ? "bg-emerald-500" : statusColor === "amber" ? "bg-amber-500" : statusColor === "rose" ? "bg-rose-500" : "bg-blue-500"}`}
+                    style={{ width: `${session.progressPct}%` }}
+                  />
+                </div>
+
+                <div className="p-5">
+                  {/* Flow diagram */}
+                  <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                    <div className="flex-shrink-0 bg-white/5 rounded-xl px-3 py-2 text-center">
+                      <p className="text-[10px] text-slate-500 mb-1">Task gốc</p>
+                      <p className="text-xs text-white font-medium max-w-[100px] truncate">{session.originalTask}</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                    <div className="flex-shrink-0 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2 text-center">
+                      <p className="text-[10px] text-emerald-400 mb-1">Router</p>
+                      <p className="text-xs text-emerald-400 font-medium">Phân tách</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {subtasks.map((st, i) => (
+                        <div key={st.id} className={`rounded-xl px-2 py-1.5 text-center ${
+                          st.status === "completed" ? "bg-emerald-500/10 border border-emerald-500/20" :
+                          st.status === "failed" || st.status === "no_agent" ? "bg-rose-500/10 border border-rose-500/20" :
+                          "bg-blue-500/10 border border-blue-500/20"
+                        }`}>
+                          <p className={`text-[9px] font-medium ${st.status === "completed" ? "text-emerald-400" : st.status === "failed" || st.status === "no_agent" ? "text-rose-400" : "text-blue-400"}`}>
+                            {st.capability}
+                          </p>
+                          <p className="text-[9px] text-slate-600 truncate max-w-[60px]">{st.assignedAgentName ?? "no agent"}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                    <div className="flex-shrink-0 bg-violet-500/10 border border-violet-500/20 rounded-xl px-3 py-2 text-center">
+                      <p className="text-[10px] text-violet-400 mb-1">Aggregator</p>
+                      <p className="text-xs text-violet-400 font-medium">Tổng hợp</p>
+                    </div>
+                  </div>
+
+                  {/* Sub-tasks detail */}
+                  <div className="space-y-2 mb-4">
+                    {subtasks.map((st) => (
+                      <div key={st.id} className={`rounded-xl border p-3 ${
+                        st.status === "completed" ? "border-emerald-500/15 bg-emerald-500/5" :
+                        st.status === "failed" || st.status === "no_agent" ? "border-rose-500/15 bg-rose-500/5" :
+                        "border-white/10 bg-white/3"
+                      }`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          {st.status === "completed"
+                            ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                            : st.status === "failed" || st.status === "no_agent"
+                            ? <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+                            : <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin flex-shrink-0" />}
+                          <span className="text-xs font-semibold text-white">{st.capability}</span>
+                          {st.assignedAgentName && (
+                            <span className="text-[10px] text-slate-500">→ {st.assignedAgentName}</span>
+                          )}
+                          {st.durationMs && (
+                            <span className="ml-auto text-[10px] text-slate-600">{st.durationMs}ms</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mb-1 ml-5">{st.subtask.slice(0, 80)}...</p>
+                        {st.result && (
+                          <p className="text-xs text-slate-300 ml-5 leading-relaxed">{st.result}</p>
+                        )}
+                        {(st.errorMessage || st.status === "no_agent") && (
+                          <p className="text-xs text-rose-400 ml-5">{st.errorMessage ?? "Không tìm được agent phù hợp"}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Aggregated result */}
+                  {session.aggregatedResult && session.status !== "running" && (
+                    <div className="bg-white/3 border border-white/10 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <BarChart2 className="w-3.5 h-3.5 text-violet-400" />
+                        <span className="text-xs font-semibold text-violet-400">Kết quả tổng hợp</span>
+                      </div>
+                      <pre className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed font-sans">
+                        {session.aggregatedResult}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })()}
+
+          {/* Session history */}
+          <motion.div initial="hidden" animate="visible" variants={fade} custom={2}
+            className="bg-white/3 border border-white/10 rounded-2xl p-5">
+            <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-slate-400" /> Lịch sử Collaboration ({collabSessions?.sessions.length ?? 0})
+            </h3>
+            <div className="space-y-2">
+              {(collabSessions?.sessions ?? []).length === 0 ? (
+                <p className="text-slate-600 text-sm text-center py-8">Chưa có session nào. Chạy task đầu tiên ở trên!</p>
+              ) : (
+                collabSessions?.sessions.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setCollabSelectedId(s.id)}
+                    className={`w-full text-left flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                      collabSelectedId === s.id
+                        ? "border-emerald-500/30 bg-emerald-500/5"
+                        : "border-white/5 bg-white/3 hover:border-white/15"
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{s.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {s.completedSubtasks}/{s.totalSubtasks} agents · {new Date(s.createdAt).toLocaleString("vi-VN")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="h-1.5 w-16 bg-white/5 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${
+                          s.status === "completed" ? "bg-emerald-500" :
+                          s.status === "partial" ? "bg-amber-500" : s.status === "failed" ? "bg-rose-500" : "bg-blue-500"
+                        }`} style={{ width: `${s.progressPct}%` }} />
+                      </div>
+                      <span className={`text-[10px] ${
+                        s.status === "completed" ? "text-emerald-400" :
+                        s.status === "partial" ? "text-amber-400" : s.status === "failed" ? "text-rose-400" : "text-blue-400"
+                      }`}>{s.progressPct.toFixed(0)}%</span>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </motion.div>
+
+          {/* How it works */}
+          <motion.div initial="hidden" animate="visible" variants={fade} custom={3}
+            className="bg-white/3 border border-white/10 rounded-2xl p-5">
+            <h3 className="text-sm font-semibold text-white mb-4">Luồng hoạt động Agent-to-Agent</h3>
+            <div className="grid sm:grid-cols-5 gap-3">
+              {[
+                { step: "1", icon: Layers, label: "Nhận task", desc: "User submit task phức tạp", color: "amber" },
+                { step: "2", icon: Route, label: "Phân tách", desc: "DecomposeTask() tạo sub-tasks theo keyword", color: "blue" },
+                { step: "3", icon: Database, label: "Route", desc: "Mỗi sub-task → best agent từ Registry", color: "purple" },
+                { step: "4", icon: MessageSquare, label: "Message Bus", desc: "Gửi messages cho từng agent qua Bus", color: "emerald" },
+                { step: "5", icon: BarChart2, label: "Tổng hợp", desc: "Aggregator kết hợp kết quả từ tất cả", color: "rose" },
+              ].map((s) => {
+                const Icon = s.icon;
+                const cls: Record<string, string> = {
+                  amber: "text-amber-400 bg-amber-500/10",
+                  blue: "text-blue-400 bg-blue-500/10",
+                  purple: "text-purple-400 bg-purple-500/10",
+                  emerald: "text-emerald-400 bg-emerald-500/10",
+                  rose: "text-rose-400 bg-rose-500/10",
+                };
+                return (
+                  <div key={s.step} className="text-center">
+                    <div className={`w-10 h-10 rounded-xl ${cls[s.color]} flex items-center justify-center mx-auto mb-2`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <p className="text-xs font-semibold text-white mb-1">{s.label}</p>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">{s.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
         </div>
       )}
 
