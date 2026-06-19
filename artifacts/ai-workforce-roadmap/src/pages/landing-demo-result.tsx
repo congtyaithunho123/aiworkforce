@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -241,6 +241,7 @@ export default function DemoResultPage() {
   const [apiError, setApiError] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [showGate, setShowGate] = useState(false);
+  const lockedSectionRef = useRef<HTMLDivElement>(null);
 
   /* advance loading steps for visual feedback */
   useEffect(() => {
@@ -268,7 +269,6 @@ export default function DemoResultPage() {
         if (!res.ok) throw new Error(json.error ?? "API error");
         setResult(json.data as DemoResult);
         setLoadStep(STEPS.length);
-        setTimeout(() => setShowGate(true), 600);
       } catch (err: unknown) {
         if ((err as { name?: string }).name === "AbortError") return;
         setApiError(err instanceof Error ? err.message : "Phân tích thất bại");
@@ -279,6 +279,25 @@ export default function DemoResultPage() {
 
     return () => controller.abort();
   }, [website]);
+
+  /* scroll-based gate: show modal when user scrolls to the blurred section */
+  useEffect(() => {
+    if (!result || unlocked) return;
+    const el = lockedSectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShowGate(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [result, unlocked]);
 
   function handleUnlocked() {
     setUnlocked(true);
@@ -479,7 +498,7 @@ export default function DemoResultPage() {
 
             {/* locked leads — blurred, click-to-unlock button overlay */}
             {lockedLeads.length > 0 && (
-              <div className="relative">
+              <div className="relative" ref={lockedSectionRef}>
                 <div className="space-y-3">
                   {lockedLeads.map((lead, i) => (
                     <LeadRow key={lead.email + i} lead={lead} index={i + VISIBLE_LEADS} blurred={!unlocked} />

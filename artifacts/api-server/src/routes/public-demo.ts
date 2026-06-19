@@ -165,7 +165,7 @@ async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
           "Mozilla/5.0 (compatible; SalesBot/1.0; +https://aiworkforce.vn)",
         Accept: "text/html,application/xhtml+xml",
       },
-      redirect: "follow",
+      redirect: "error",  // never follow redirects — prevents SSRF bypass via open redirects
     });
     clearTimeout(timeout);
 
