@@ -27,3 +27,7 @@ export * from "./usage-records";
 export * from "./provider-keys";
 export * from "./audit-logs";
 export * from "./notifications";
+export * from "./execution-metrics";
+export * from "./agent-templates";
+export * from "./workflow-templates";
+export * from "./prompt-versions";

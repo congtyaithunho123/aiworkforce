@@ -17,6 +17,12 @@ import providerKeysRouter from "./provider-keys";
 import auditLogsRouter from "./audit-logs";
 import notificationsRouter from "./notifications";
 import onboardingRouter from "./onboarding";
+import streamRouter from "./stream";
+import metricsRouter from "./metrics";
+import agentTemplatesRouter from "./agent-templates";
+import workflowTemplatesRouter from "./workflow-templates";
+import promptVersionsRouter from "./prompt-versions";
+import costControlRouter from "./cost-control";
 import { authenticate } from "../middleware/authenticate";
 
 const router: IRouter = Router();
@@ -42,5 +48,11 @@ router.use(providerKeysRouter);
 router.use(auditLogsRouter);
 router.use(notificationsRouter);
 router.use(onboardingRouter);
+router.use(streamRouter);
+router.use(metricsRouter);
+router.use(agentTemplatesRouter);
+router.use(workflowTemplatesRouter);
+router.use(promptVersionsRouter);
+router.use(costControlRouter);
 
 export default router;

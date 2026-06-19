@@ -179,6 +179,14 @@ Marketing      Sales            HR
 | **Audit Log** | `audit_logs` table + `routes/audit-logs` + Settings tab | Ghi lại toàn bộ hành động theo tổ chức, xem trong Settings → Audit Log |
 | **Notifications** | `notifications` table + `routes/notifications` + Bell icon in Nav | Dropdown bell với unread count, đọc từng cái hoặc đọc tất cả |
 | **Onboarding Wizard** | `pages/onboarding.tsx` + `routes/onboarding` | 4 bước: chọn ngành → nhập website → chọn AI Team → hoàn tất; lưu vào organizations |
+| **Job Queue (pg-boss)** | `lib/queue.ts` + `lib/worker.ts` | 4 queues PostgreSQL-backed: task-execution, workflow-execution, email-generation, lead-generation — retry/backoff/DLQ |
+| **Real-time SSE Dashboard** | `routes/stream.ts` + `lib/events.ts` + `components/LiveActivity.tsx` | EventSource live feed — task_started, task_progress, task_completed, task_failed events |
+| **Observability Metrics** | `routes/metrics.ts` + `db/schema/execution-metrics.ts` | Agent-level metrics: avg duration, success rate, cost per execution, daily aggregation |
+| **Agent Evaluation** | `lib/agent-runner.ts` (quality scoring) | GPT-4o-mini reviewer scores quality/accuracy/completeness 0–100 sau mỗi execution |
+| **Prompt Versioning** | `routes/prompt-versions.ts` + `db/schema/prompt-versions.ts` | Lưu lịch sử system prompt, rollback về version bất kỳ |
+| **Agent Marketplace** | `routes/agent-templates.ts` + `pages/marketplace.tsx` | 6 agent templates seeded (SDR, Content Writer, Customer Support…), clone 1-click |
+| **Workflow Templates** | `routes/workflow-templates.ts` + `db/schema/workflow-templates.ts` | 4 workflow templates (Lead Gen, Content Publish, Customer Onboarding, Market Research) |
+| **Cost Control** | `routes/cost-control.ts` + `db/schema/organizations.ts` | Monthly budget limit, warning threshold, auto-stop khi vượt ngân sách |
 
 ### ❌ Chưa xây dựng (SaaS roadmap — tiếp theo)
 
@@ -188,7 +196,7 @@ Marketing      Sales            HR
 | 2 | **AI Accounting Team** | `routes/accounting-*` + `/accounting` page | Invoice, Expense, Tax agents |
 | 3 | **AI Customer Support Team** | `routes/support-*` + `/support` page | Ticket, FAQ, Escalation agents |
 | 4 | **Task Router tự động** | `lib/task-router` | Tự động phân công việc dựa trên yêu cầu |
-| 5 | **Agent Registry (Marketplace)** | `pages/marketplace.tsx` | Mua và triển khai AI Workers từ bên thứ ba |
+| 5 | **Backup / Recovery** | `routes/backup` + cron | Export DB snapshot, restore on demand |
 
 ### 🔄 Dịch vụ đang chạy
 
@@ -200,4 +208,4 @@ Marketing      Sales            HR
 
 ---
 
-*Cập nhật lần cuối: 19/06/2026*
+*Cập nhật lần cuối: 20/06/2026 — Production-ready upgrade hoàn thành*

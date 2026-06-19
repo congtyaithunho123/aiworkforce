@@ -14,12 +14,13 @@ import ForgotPasswordPage from "@/pages/forgot-password";
 import BillingPage from "@/pages/billing";
 import SettingsPage from "@/pages/settings";
 import OnboardingPage from "@/pages/onboarding";
+import MarketplacePage from "@/pages/marketplace";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import {
   GitMerge, Map, LayoutDashboard, Zap, Megaphone, LogOut, User,
-  CreditCard, Settings, Bell, X, Check
+  CreditCard, Settings, Bell, X, Check, Store
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -107,9 +108,7 @@ function NotificationBell() {
           </div>
           <div className="max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
-              <div className="px-4 py-6 text-center text-slate-500 text-sm">
-                Không có thông báo
-              </div>
+              <div className="px-4 py-6 text-center text-slate-500 text-sm">Không có thông báo</div>
             ) : (
               notifications.map((n) => (
                 <div
@@ -149,14 +148,15 @@ function Nav() {
     { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
     { href: "/workflows", label: "Workflows", Icon: GitMerge },
     { href: "/sales", label: "AI SDR", Icon: Zap },
-    { href: "/marketing", label: "AI Marketing", Icon: Megaphone },
+    { href: "/marketing", label: "Marketing", Icon: Megaphone },
+    { href: "/marketplace", label: "Marketplace", Icon: Store },
     { href: "/billing", label: "Billing", Icon: CreditCard },
     { href: "/settings", label: "Settings", Icon: Settings },
   ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center gap-1 px-4 py-2 bg-black/90 border-b border-white/10 backdrop-blur-sm">
-      <div className="flex items-center gap-1 flex-1 overflow-x-auto">
+      <div className="flex items-center gap-1 flex-1 overflow-x-auto scrollbar-hide">
         {links.map(({ href, label, Icon }) => {
           const active = href === "/" ? location === "/" : location.startsWith(href);
           return (
@@ -182,7 +182,7 @@ function Nav() {
           </span>
         )}
         {user && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 hidden sm:flex">
+          <div className="items-center gap-1.5 text-xs text-slate-400 hidden lg:flex">
             <User className="w-3.5 h-3.5" />
             {user.name ?? user.email}
           </div>
@@ -217,6 +217,7 @@ function AppRouter() {
               <Route path="/workflows" component={WorkflowsPage} />
               <Route path="/sales" component={SalesPage} />
               <Route path="/marketing" component={MarketingPage} />
+              <Route path="/marketplace" component={MarketplacePage} />
               <Route path="/billing" component={BillingPage} />
               <Route path="/settings" component={SettingsPage} />
               <Route component={NotFound} />

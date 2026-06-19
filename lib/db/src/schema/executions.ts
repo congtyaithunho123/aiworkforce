@@ -21,8 +21,15 @@ export const executionsTable = pgTable("executions", {
   completionTokens: integer("completion_tokens").notNull().default(0),
   totalTokens: integer("total_tokens").notNull().default(0),
   estimatedCost: real("estimated_cost").notNull().default(0),
-  status: text("status").notNull().default("running"),
+  durationMs: integer("duration_ms"),
+  status: text("status").notNull().default("running"), // running, completed, failed
   output: text("output"),
+  errorMessage: text("error_message"),
+  // Agent Evaluation scores (0–100), set by Evaluator Agent after completion
+  qualityScore: integer("quality_score"),
+  accuracyScore: integer("accuracy_score"),
+  completenessScore: integer("completeness_score"),
+  evaluationNote: text("evaluation_note"),
 });
 
 export const insertExecutionSchema = createInsertSchema(executionsTable).omit({

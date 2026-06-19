@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
+import { LiveActivity } from "@/components/LiveActivity";
 
 type Org = { id: number; name: string; description?: string };
 type Agent = {
@@ -239,6 +240,9 @@ export default function DashboardPage() {
               <StatCard icon={GitMerge} label="Workflow Runs" value={kpi?.workflows.totalRuns ?? 0} color="amber" />
               <StatCard icon={DollarSign} label="Tổng chi phí" value={fmtCost(costData?.overall.totalCost)} color="emerald" />
             </div>
+
+            {/* Live Activity Feed */}
+            <LiveActivity />
 
             {/* Success Rate Bar */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-5">

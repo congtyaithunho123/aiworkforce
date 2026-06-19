@@ -4,6 +4,27 @@ _Log tự động — ghi lại mỗi lần build thành công_
 
 ---
 
+## 02:19:19 20/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 1.25s
+- **Mô tả:** Express API — AI Workforce backend
+
+## 02:18:34 20/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 506ms
+- **Mô tả:** Express API — AI Workforce backend
+
+## 02:17:25 20/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 653ms
+- **Mô tả:** Express API — AI Workforce backend
+
+## 02:15:55 20/06/2026 — `api-server`
+- **Trạng thái:** ❌ Thất bại
+- **Thời gian build:** 511ms
+- **Mô tả:** Build failed with 1 error:
+src/lib/queue.ts:1:7: ERROR: No matching export in "../../node_modules/.pnpm/pg-boss@12.19.1/
+
 ## 01:49:43 20/06/2026 — `api-server`
 - **Trạng thái:** ✅ Thành công
 - **Thời gian build:** 664ms
