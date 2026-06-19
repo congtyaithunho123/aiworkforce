@@ -39,8 +39,8 @@ type Content = {
 type ProjectDetail = { project: Project; research?: Research; keywords?: Keywords; content?: Content };
 
 const api = {
-  get: <T>(p: string) => apiFetch<T>(`/api${p}`),
-  post: <T>(p: string, b: unknown) => apiFetch<T>(`/api${p}`, {
+  get: <T,>(p: string) => apiFetch<T>(`/api${p}`),
+  post: <T,>(p: string, b: unknown) => apiFetch<T>(`/api${p}`, {
     method: "POST", body: JSON.stringify(b),
   }),
 };

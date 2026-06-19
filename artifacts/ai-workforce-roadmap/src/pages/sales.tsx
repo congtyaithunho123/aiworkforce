@@ -41,8 +41,8 @@ type LeadList = {
 // ── API helpers ────────────────────────────────────────────────────────────
 
 const api = {
-  get: <T>(path: string) => apiFetch<T>(`/api${path}`),
-  post: <T>(path: string, body: unknown) => apiFetch<T>(`/api${path}`, {
+  get: <T,>(path: string) => apiFetch<T>(`/api${path}`),
+  post: <T,>(path: string, body: unknown) => apiFetch<T>(`/api${path}`, {
     method: "POST",
     body: JSON.stringify(body),
   }),

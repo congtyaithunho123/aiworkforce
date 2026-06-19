@@ -15,6 +15,11 @@ import BillingPage from "@/pages/billing";
 import SettingsPage from "@/pages/settings";
 import OnboardingPage from "@/pages/onboarding";
 import MarketplacePage from "@/pages/marketplace";
+import LandingHome from "@/pages/landing-home";
+import LandingFeatures from "@/pages/landing-features";
+import LandingPricing from "@/pages/landing-pricing";
+import LandingDemo from "@/pages/landing-demo";
+import LandingContact from "@/pages/landing-contact";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -139,12 +144,12 @@ function NotificationBell() {
   );
 }
 
-function Nav() {
+function AppNav() {
   const [location] = useLocation();
   const { user, organization, logout } = useAuth();
 
   const links = [
-    { href: "/", label: "Roadmap", Icon: Map },
+    { href: "/roadmap", label: "Roadmap", Icon: Map },
     { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
     { href: "/workflows", label: "Workflows", Icon: GitMerge },
     { href: "/sales", label: "AI SDR", Icon: Zap },
@@ -158,7 +163,7 @@ function Nav() {
     <nav className="fixed top-0 left-0 right-0 z-50 flex items-center gap-1 px-4 py-2 bg-black/90 border-b border-white/10 backdrop-blur-sm">
       <div className="flex items-center gap-1 flex-1 overflow-x-auto scrollbar-hide">
         {links.map(({ href, label, Icon }) => {
-          const active = href === "/" ? location === "/" : location.startsWith(href);
+          const active = location === href || location.startsWith(href + "/");
           return (
             <Link
               key={href}
@@ -203,16 +208,26 @@ function Nav() {
 function AppRouter() {
   return (
     <Switch>
+      {/* Public landing pages — no auth required */}
+      <Route path="/" component={LandingHome} />
+      <Route path="/features" component={LandingFeatures} />
+      <Route path="/pricing" component={LandingPricing} />
+      <Route path="/demo" component={LandingDemo} />
+      <Route path="/contact" component={LandingContact} />
+
+      {/* Auth pages */}
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/onboarding" component={OnboardingPage} />
+
+      {/* Protected app pages */}
       <Route>
         <ProtectedRoute>
-          <Nav />
+          <AppNav />
           <div className="pt-12">
             <Switch>
-              <Route path="/" component={Home} />
+              <Route path="/roadmap" component={Home} />
               <Route path="/dashboard" component={DashboardPage} />
               <Route path="/workflows" component={WorkflowsPage} />
               <Route path="/sales" component={SalesPage} />
