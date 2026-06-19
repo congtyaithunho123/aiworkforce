@@ -1,14 +1,35 @@
-# Tiến Trình Hệ Thống
-
-_Log tự động — ghi lại mỗi lần build thành công_
-
----
+## 05:17:46 20/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 672ms
+- **Mô tả:** Express API — AI Workforce backend
 
 ## 💡 Gợi ý tính năng tiếp theo nên build
 
 - **Agent Analytics Dashboard riêng** — trang thống kê chi tiết cho từng agent đã publish: lượt cài đặt theo ngày, doanh thu, rating trung bình, top reviews
 - **Workflow Publisher** — tương tự Publish Agent nhưng cho Workflow (multi-agent pipeline), publish toàn bộ workflow lên store
 - **Notification Center** — trung tâm thông báo real-time: khi agent được cài đặt, khi có review mới, khi có task cần duyệt
+
+---
+
+## ✅ 22:17:46 19/06/2026 — `AI Workforce Cloud Runtime (10 tính năng)`
+- **Trạng thái:** ✅ Build xong — API Server 647ms, no errors
+- **Tính năng:** Nền tảng Cloud Runtime quản lý hàng nghìn Agent
+- **DB Tables mới (6 bảng):**
+  - `agent_messages` — Agent Communication Bus
+  - `agent_registry` — Global Agent Registry với reputation scoring
+  - `teams` + `team_agents` — Workforce Graph (Org > Dept > Team > Agent)
+  - `shared_memories` — Shared Memory Layer (personal/team/dept/org)
+  - `workforce_events` — Event System (16 event types)
+  - `federation_agreements` — Federation Ready (cross-org sharing)
+- **Backend (4 route files, 30+ endpoints):**
+  - `workforce-cloud.ts` — Bus API + Registry + Capability Router + Shared Memory + Events
+  - `workforce-graph.ts` — Workforce Graph Engine (full org tree)
+  - `workforce-monitoring.ts` — Real-time monitoring snapshot
+  - `workforce-federation.ts` — Federation API với auto-generated API keys
+- **Frontend:** `/workforce` — Cloud Runtime Dashboard với 9 tabs:
+  Monitoring, Message Bus, Registry, Capability Router, Shared Memory, Events, Graph, Federation, SDK Docs
+- **SDK:** `@workspace/sdk` — TypeScript SDK với 8 sub-clients đầy đủ
+- **Nav:** Thêm "Cloud Runtime" vào navigation bar
 
 ---
 

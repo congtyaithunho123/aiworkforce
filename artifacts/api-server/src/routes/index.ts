@@ -32,6 +32,10 @@ import crmRouter from "./crm";
 import kpiRouter from "./kpi";
 import emailAutomationRouter from "./email-automation";
 import marketplaceStoreRouter from "./marketplace-store";
+import workforceCloudRouter from "./workforce-cloud";
+import workforceGraphRouter from "./workforce-graph";
+import workforceMonitoringRouter from "./workforce-monitoring";
+import workforceFederationRouter from "./workforce-federation";
 
 const router: IRouter = Router();
 
@@ -70,5 +74,9 @@ router.use(crmRouter);
 router.use(kpiRouter);
 router.use(emailAutomationRouter);
 router.use(marketplaceStoreRouter);
+router.use(workforceCloudRouter);
+router.use(workforceGraphRouter);
+router.use(workforceMonitoringRouter);
+router.use(workforceFederationRouter);
 
 export default router;

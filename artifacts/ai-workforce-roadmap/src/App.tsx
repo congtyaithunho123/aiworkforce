@@ -25,6 +25,7 @@ import CRMPage from "@/pages/crm";
 import KpiDashboard from "@/pages/kpi-dashboard";
 import CustomerSuccessPage from "@/pages/customer-success";
 import EmailAutomationPage from "@/pages/email-automation";
+import WorkforcePage from "@/pages/workforce";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -32,7 +33,7 @@ import { TrialBanner } from "@/components/TrialBanner";
 import {
   GitMerge, Map, LayoutDashboard, Zap, Megaphone, LogOut, User,
   CreditCard, Settings, Bell, X, Check, Store, Briefcase,
-  BarChart3, Activity, Mail
+  BarChart3, Activity, Mail, Server
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -166,6 +167,7 @@ function AppNav() {
     { href: "/customer-success", label: "CS Dashboard", Icon: Activity },
     { href: "/email-automation", label: "Email", Icon: Mail },
     { href: "/marketplace", label: "Marketplace", Icon: Store },
+    { href: "/workforce", label: "Cloud Runtime", Icon: Server },
     { href: "/billing", label: "Billing", Icon: CreditCard },
     { href: "/settings", label: "Settings", Icon: Settings },
   ];
@@ -250,6 +252,7 @@ function AppRouter() {
               <Route path="/customer-success" component={CustomerSuccessPage} />
               <Route path="/email-automation" component={EmailAutomationPage} />
               <Route path="/marketplace" component={MarketplacePage} />
+              <Route path="/workforce" component={WorkforcePage} />
               <Route path="/billing" component={BillingPage} />
               <Route path="/settings" component={SettingsPage} />
               <Route component={NotFound} />
