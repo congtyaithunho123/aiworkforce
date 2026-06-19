@@ -2,7 +2,20 @@ import { z } from "zod/v4";
 import OpenAI from "openai";
 import { logger } from "./logger";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (_openai) return _openai;
+  const apiKey = process.env.OPENAI_API_KEY ?? process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
+  _openai = new OpenAI({ apiKey, ...(baseURL ? { baseURL } : {}) });
+  return _openai;
+}
+const openai = new Proxy({} as OpenAI, {
+  get(_t, prop) {
+    return (getOpenAI() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
 const MODEL = "gpt-4o-mini";
 
 const MODEL_COSTS: Record<string, { prompt: number; completion: number }> = {

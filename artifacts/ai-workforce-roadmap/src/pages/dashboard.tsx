@@ -6,7 +6,8 @@ import {
   CheckCircle2, XCircle, Clock, AlertCircle, TrendingUp,
   Users, Wrench, Star, ChevronDown, ChevronUp, Play,
   Plus, Loader2, Shield, Activity, Target, Award,
-  ArrowUpRight, Layers, GitMerge, RefreshCw, Briefcase
+  ArrowUpRight, Layers, GitMerge, RefreshCw, Briefcase,
+  Upload, Store, Tag, ChevronRight, Check, X
 } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
@@ -124,6 +125,17 @@ export default function DashboardPage() {
   const [skillForm, setSkillForm] = useState({ name: "", description: "", inputSchema: "", outputSchema: "" });
   const [addAgentForm, setAddAgentForm] = useState({ agentId: "" });
 
+  // Publish to Marketplace state
+  const [publishStep, setPublishStep] = useState<1 | 2 | 3>(1);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishAgentId, setPublishAgentId] = useState<number | null>(null);
+  const [publishForm, setPublishForm] = useState({
+    displayName: "", description: "", longDescription: "",
+    category: "general", tagInput: "", tags: [] as string[],
+    iconEmoji: "🤖", priceType: "free" as "free" | "paid", priceCents: 0,
+  });
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+
   const qc = useQueryClient();
 
   const { data: orgs = [] } = useQuery<Org[]>({ queryKey: ["orgs"], queryFn: () => apiFetch("/api/organizations") });
@@ -174,6 +186,36 @@ export default function DashboardPage() {
       apiFetch(`/api/tasks/${id}/approve`, { method: "POST", body: JSON.stringify({ action, note }) }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); setApprovalNote(""); },
   });
+
+  const publishToMarketplaceMut = useMutation({
+    mutationFn: (body: object) => apiFetch<{ success: boolean; item: object; message: string }>(
+      "/api/marketplace/agents/from-agent", { method: "POST", body: JSON.stringify(body) }
+    ),
+    onSuccess: (data) => {
+      setPublishSuccess(data.message);
+      setPublishStep(3);
+      qc.invalidateQueries({ queryKey: ["marketplace-agents"] });
+    },
+  });
+
+  function openPublishModal(agent: Agent) {
+    setPublishAgentId(agent.id);
+    setPublishForm({
+      displayName: agent.name, description: "",
+      longDescription: "", category: "general",
+      tagInput: "", tags: [], iconEmoji: "🤖",
+      priceType: "free", priceCents: 0,
+    });
+    setPublishStep(1);
+    setPublishSuccess(null);
+    setShowPublishModal(true);
+  }
+
+  function closePublishModal() {
+    setShowPublishModal(false);
+    setPublishSuccess(null);
+    publishToMarketplaceMut.reset();
+  }
 
   const pendingApprovals = tasks.filter(t => t.requiresApproval && t.approvalStatus === null && t.status === "completed");
 
@@ -464,6 +506,10 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">Agents ({agents.length})</h2>
+              <div className="flex items-center gap-2 text-xs text-slate-500 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+                <Store className="w-3.5 h-3.5 text-amber-400" />
+                <span>Nhấn <span className="text-amber-400 font-medium">Publish</span> trên mỗi agent để đưa lên Marketplace</span>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {agents.map((agent) => {
@@ -490,10 +536,18 @@ export default function DashboardPage() {
                         </div>
                         {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-600 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-600 shrink-0" />}
                       </div>
-                      <div className="flex gap-4 mt-3 text-xs text-slate-600">
-                        <span>{agentTasks.length} tasks</span>
-                        <span className="text-emerald-500">{successCount} completed</span>
-                        <span className="text-red-500">{agentTasks.filter(t => t.status === "failed").length} failed</span>
+                      <div className="flex items-center gap-4 mt-3">
+                        <span className="text-xs text-slate-600">{agentTasks.length} tasks</span>
+                        <span className="text-xs text-emerald-500">{successCount} completed</span>
+                        <span className="text-xs text-red-500">{agentTasks.filter(t => t.status === "failed").length} failed</span>
+                        <div className="ml-auto">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openPublishModal(agent); }}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-500/10 border border-violet-500/30 text-violet-400 text-[11px] font-medium hover:bg-violet-500/20 transition-colors"
+                          >
+                            <Upload className="w-3 h-3" /> Publish
+                          </button>
+                        </div>
                       </div>
                     </button>
                     <AnimatePresence>
@@ -925,6 +979,336 @@ export default function DashboardPage() {
               />
             </div>
           </Modal>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Publish Agent to Marketplace (3 bước) */}
+      <AnimatePresence>
+        {showPublishModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={closePublishModal} />
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-xl bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            >
+              {/* Header */}
+              <div className="px-6 pt-6 pb-4 border-b border-white/5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                      <Store className="w-4 h-4 text-violet-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white">Publish lên Marketplace</h3>
+                      <p className="text-xs text-slate-500">Chia sẻ agent của bạn với cộng đồng</p>
+                    </div>
+                  </div>
+                  <button onClick={closePublishModal} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {/* Step indicator */}
+                {publishStep < 3 && (
+                  <div className="flex items-center gap-2">
+                    {[1, 2].map((s) => (
+                      <div key={s} className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all ${
+                          publishStep > s ? "bg-violet-500 border-violet-500 text-white" :
+                          publishStep === s ? "border-violet-500 text-violet-400 bg-violet-500/10" :
+                          "border-white/10 text-slate-600"
+                        }`}>
+                          {publishStep > s ? <Check className="w-3 h-3" /> : s}
+                        </div>
+                        <span className={`text-xs ${publishStep >= s ? "text-slate-300" : "text-slate-600"}`}>
+                          {s === 1 ? "Chọn Agent" : "Cấu hình"}
+                        </span>
+                        {s < 2 && <ChevronRight className="w-3 h-3 text-slate-700" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                {/* ── STEP 1: Chọn Agent ── */}
+                {publishStep === 1 && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-slate-400">Chọn agent bạn muốn publish lên store:</p>
+                    <div className="space-y-2">
+                      {agents.map((agent) => (
+                        <button
+                          key={agent.id}
+                          onClick={() => {
+                            setPublishAgentId(agent.id);
+                            setPublishForm(f => ({ ...f, displayName: agent.name }));
+                          }}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                            publishAgentId === agent.id
+                              ? "border-violet-500/50 bg-violet-500/10"
+                              : "border-white/10 bg-white/5 hover:border-white/20"
+                          }`}
+                        >
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 ${publishAgentId === agent.id ? "bg-violet-500/20" : "bg-white/5"}`}>
+                            🤖
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-white">{agent.name}</div>
+                            <div className="text-xs text-slate-500">{agent.role} · {agent.model}</div>
+                          </div>
+                          {publishAgentId === agent.id && (
+                            <div className="w-5 h-5 rounded-full bg-violet-500 flex items-center justify-center shrink-0">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                      {agents.length === 0 && (
+                        <div className="text-center py-8 text-slate-600">
+                          <Bot className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm">Chưa có agents nào để publish</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={closePublishModal} className="flex-1 px-4 py-2 rounded-lg border border-white/10 text-slate-400 text-sm hover:border-white/20 transition-colors">Hủy</button>
+                      <button
+                        onClick={() => setPublishStep(2)}
+                        disabled={!publishAgentId}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/30 transition-colors disabled:opacity-40"
+                      >
+                        Tiếp theo <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── STEP 2: Cấu hình ── */}
+                {publishStep === 2 && (
+                  <div className="space-y-4">
+                    {/* Icon & Tên */}
+                    <div className="flex gap-3">
+                      <div>
+                        <label className="block text-xs text-slate-500 mb-1.5 font-medium">Icon</label>
+                        <input
+                          value={publishForm.iconEmoji}
+                          onChange={e => setPublishForm(f => ({ ...f, iconEmoji: e.target.value }))}
+                          className="w-16 text-center bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-2xl focus:outline-none focus:border-violet-500/50"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs text-slate-500 mb-1.5 font-medium">Tên hiển thị *</label>
+                        <input
+                          value={publishForm.displayName}
+                          onChange={e => setPublishForm(f => ({ ...f, displayName: e.target.value }))}
+                          placeholder="VD: AI SDR Pro"
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category */}
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1.5 font-medium">Danh mục</label>
+                      <select
+                        value={publishForm.category}
+                        onChange={e => setPublishForm(f => ({ ...f, category: e.target.value }))}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50"
+                      >
+                        {["general","sales","marketing","support","hr","finance","operations","engineering"].map(c => (
+                          <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Mô tả ngắn */}
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1.5 font-medium">Mô tả ngắn *</label>
+                      <input
+                        value={publishForm.description}
+                        onChange={e => setPublishForm(f => ({ ...f, description: e.target.value }))}
+                        placeholder="Mô tả ngắn gọn về agent..."
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/50"
+                      />
+                    </div>
+
+                    {/* Mô tả chi tiết */}
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1.5 font-medium">Mô tả chi tiết</label>
+                      <textarea
+                        value={publishForm.longDescription}
+                        onChange={e => setPublishForm(f => ({ ...f, longDescription: e.target.value }))}
+                        placeholder="Mô tả đầy đủ tính năng, use case, cách dùng..."
+                        rows={3}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/50 resize-none"
+                      />
+                    </div>
+
+                    {/* Tags */}
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1.5 font-medium">Tags</label>
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {publishForm.tags.map(tag => (
+                          <span key={tag} className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs">
+                            {tag}
+                            <button onClick={() => setPublishForm(f => ({ ...f, tags: f.tags.filter(t => t !== tag) }))} className="text-violet-500 hover:text-violet-300">
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          value={publishForm.tagInput}
+                          onChange={e => setPublishForm(f => ({ ...f, tagInput: e.target.value }))}
+                          onKeyDown={e => {
+                            if ((e.key === "Enter" || e.key === ",") && publishForm.tagInput.trim()) {
+                              e.preventDefault();
+                              const tag = publishForm.tagInput.trim().toLowerCase();
+                              if (!publishForm.tags.includes(tag)) {
+                                setPublishForm(f => ({ ...f, tags: [...f.tags, tag], tagInput: "" }));
+                              } else {
+                                setPublishForm(f => ({ ...f, tagInput: "" }));
+                              }
+                            }
+                          }}
+                          placeholder="Nhập tag rồi Enter..."
+                          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500/50"
+                        />
+                        <button
+                          onClick={() => {
+                            const tag = publishForm.tagInput.trim().toLowerCase();
+                            if (tag && !publishForm.tags.includes(tag)) {
+                              setPublishForm(f => ({ ...f, tags: [...f.tags, tag], tagInput: "" }));
+                            }
+                          }}
+                          className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 text-sm hover:border-white/20 transition-colors"
+                        >
+                          <Tag className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Pricing */}
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1.5 font-medium">Định giá</label>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setPublishForm(f => ({ ...f, priceType: "free", priceCents: 0 }))}
+                          className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${
+                            publishForm.priceType === "free"
+                              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                              : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
+                          }`}
+                        >
+                          Miễn phí
+                        </button>
+                        <button
+                          onClick={() => setPublishForm(f => ({ ...f, priceType: "paid" }))}
+                          className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${
+                            publishForm.priceType === "paid"
+                              ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
+                              : "border-white/10 bg-white/5 text-slate-400 hover:border-white/20"
+                          }`}
+                        >
+                          Có phí
+                        </button>
+                      </div>
+                      {publishForm.priceType === "paid" && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-slate-500 text-sm">$</span>
+                          <input
+                            type="number" min="0" step="0.01"
+                            value={(publishForm.priceCents / 100).toFixed(2)}
+                            onChange={e => setPublishForm(f => ({ ...f, priceCents: Math.round(parseFloat(e.target.value || "0") * 100) }))}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500/50"
+                            placeholder="9.99"
+                          />
+                          <span className="text-slate-600 text-xs">USD / tháng</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {publishToMarketplaceMut.isError && (
+                      <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+                        {(publishToMarketplaceMut.error as Error).message}
+                      </p>
+                    )}
+
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => setPublishStep(1)} className="flex-1 px-4 py-2 rounded-lg border border-white/10 text-slate-400 text-sm hover:border-white/20 transition-colors">Quay lại</button>
+                      <button
+                        onClick={() => {
+                          if (!publishAgentId || !publishForm.displayName || !publishForm.description) return;
+                          publishToMarketplaceMut.mutate({
+                            agentId: publishAgentId,
+                            displayName: publishForm.displayName,
+                            description: publishForm.description,
+                            longDescription: publishForm.longDescription,
+                            category: publishForm.category,
+                            tags: publishForm.tags,
+                            iconEmoji: publishForm.iconEmoji,
+                            priceType: publishForm.priceType,
+                            priceCents: publishForm.priceCents,
+                          });
+                        }}
+                        disabled={publishToMarketplaceMut.isPending || !publishForm.displayName || !publishForm.description}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/30 transition-colors disabled:opacity-40"
+                      >
+                        {publishToMarketplaceMut.isPending ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Đang publish...</>
+                        ) : (
+                          <><Upload className="w-4 h-4" /> Publish ngay</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── STEP 3: Thành công ── */}
+                {publishStep === 3 && publishSuccess && (
+                  <div className="text-center py-4 space-y-4">
+                    <motion.div
+                      initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200 }}
+                      className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto"
+                    >
+                      <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                    </motion.div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white mb-1">Publish thành công! 🎉</h4>
+                      <p className="text-sm text-slate-400">{publishSuccess}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left space-y-2">
+                      <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Thông tin đã publish</div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-2xl">{publishForm.iconEmoji}</span>
+                        <div>
+                          <div className="text-white font-medium">{publishForm.displayName}</div>
+                          <div className="text-xs text-slate-500">{publishForm.category} · {publishForm.priceType === "free" ? "Miễn phí" : `$${(publishForm.priceCents/100).toFixed(2)}/tháng`}</div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-400">{publishForm.description}</p>
+                      {publishForm.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {publishForm.tags.map(t => (
+                            <span key={t} className="px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs">{t}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={closePublishModal} className="flex-1 px-4 py-2 rounded-lg border border-white/10 text-slate-400 text-sm hover:border-white/20 transition-colors">Đóng</button>
+                      <button
+                        onClick={() => { closePublishModal(); window.location.href = "/marketplace"; }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-violet-500/20 border border-violet-500/30 text-violet-400 text-sm font-medium hover:bg-violet-500/30 transition-colors"
+                      >
+                        <Store className="w-4 h-4" /> Xem trên Marketplace
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

@@ -497,6 +497,68 @@ router.post("/marketplace/agents", async (req, res): Promise<void> => {
   }
 });
 
+// ── POST /marketplace/agents/from-agent (publish from existing agent) ──────────
+const PublishFromAgentSchema = z.object({
+  agentId: z.number().int().positive(),
+  displayName: z.string().min(1),
+  description: z.string().min(1),
+  longDescription: z.string().default(""),
+  category: z.string().default("general"),
+  tags: z.array(z.string()).default([]),
+  iconEmoji: z.string().default("🤖"),
+  priceType: z.enum(["free", "paid"]).default("free"),
+  priceCents: z.number().int().min(0).default(0),
+});
+
+router.post("/marketplace/agents/from-agent", async (req, res): Promise<void> => {
+  const parsed = PublishFromAgentSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  try {
+    const orgId = req.user.organizationId;
+    const creatorId = req.user.id;
+    const { agentId, ...config } = parsed.data;
+
+    const [sourceAgent] = await db.select().from(agentsTable).where(
+      and(eq(agentsTable.id, agentId), eq(agentsTable.organizationId, orgId))
+    );
+    if (!sourceAgent) {
+      res.status(404).json({ error: "Agent không tồn tại hoặc không thuộc tổ chức của bạn" });
+      return;
+    }
+
+    const name = sourceAgent.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+    const [item] = await db.insert(marketplaceAgentsTable).values({
+      organizationId: orgId,
+      creatorId,
+      name,
+      displayName: config.displayName,
+      description: config.description,
+      longDescription: config.longDescription,
+      category: config.category,
+      tags: config.tags,
+      iconEmoji: config.iconEmoji,
+      priceType: config.priceType,
+      priceCents: config.priceCents,
+      model: sourceAgent.model ?? "gpt-4o-mini",
+      systemPrompt: sourceAgent.systemPrompt ?? "",
+      tools: [],
+      version: "1.0.0",
+      status: "published",
+      successRate: "100.00",
+    }).returning();
+
+    res.status(201).json({ success: true, item, message: `Agent "${config.displayName}" đã được publish lên Marketplace!` });
+  } catch (err) {
+    console.error("[marketplace/agents/from-agent]", err);
+    res.status(500).json({ error: "Failed to publish agent to marketplace" });
+  }
+});
+
 // ── PATCH /marketplace/agents/:id ─────────────────────────────────────────────
 router.patch("/marketplace/agents/:id", async (req, res): Promise<void> => {
   try {

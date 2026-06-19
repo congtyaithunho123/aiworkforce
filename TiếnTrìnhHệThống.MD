@@ -4,6 +4,37 @@ _Log tự động — ghi lại mỗi lần build thành công_
 
 ---
 
+## 💡 Gợi ý tính năng tiếp theo nên build
+
+- **Agent Analytics Dashboard riêng** — trang thống kê chi tiết cho từng agent đã publish: lượt cài đặt theo ngày, doanh thu, rating trung bình, top reviews
+- **Workflow Publisher** — tương tự Publish Agent nhưng cho Workflow (multi-agent pipeline), publish toàn bộ workflow lên store
+- **Notification Center** — trung tâm thông báo real-time: khi agent được cài đặt, khi có review mới, khi có task cần duyệt
+
+---
+
+## ✅ 22:08:41 19/06/2026 — `Publish Agent to Marketplace`
+- **Trạng thái:** ✅ Build xong
+- **Tính năng:** Publish Agent lên Marketplace từ Dashboard — wizard 3 bước
+- **Chi tiết:**
+  - Bước 1: Chọn agent từ danh sách agents hiện có
+  - Bước 2: Cấu hình (tên hiển thị, mô tả, danh mục, tags, emoji icon, định giá Free/Paid)
+  - Bước 3: Xác nhận thành công + link đến Marketplace
+  - Backend: `POST /api/marketplace/agents/from-agent` — publish agent có sẵn lên store
+  - Frontend: Modal wizard 3 bước với nút "Publish" trên mỗi agent card trong tab Agents
+  - Fix: Sửa lazy initialization OpenAI trong `sdr-agents.ts` & `marketing-agents.ts`
+
+---
+
+## 05:08:08 20/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 369ms
+- **Mô tả:** Express API — AI Workforce backend
+
+## 05:06:58 20/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 463ms
+- **Mô tả:** Express API — AI Workforce backend
+
 ## 04:37:24 20/06/2026 — `api-server`
 - **Trạng thái:** ✅ Thành công
 - **Thời gian build:** 367ms
