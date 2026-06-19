@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowRight, Loader2, CheckCircle, User, Mail, Building2,
   Globe, Target, Zap, AlertCircle, Lock, Unlock, X
@@ -42,12 +42,10 @@ interface DemoResult {
 
 /* ── skeleton ────────────────────────────────────────────────── */
 function Skeleton({ className = "" }: { className?: string }) {
-  return (
-    <div className={`animate-pulse rounded bg-white/8 ${className}`} />
-  );
+  return <div className={`animate-pulse rounded bg-white/8 ${className}`} />;
 }
 
-function SkeletonCard({ title, rows = 3 }: { title: string; rows?: number }) {
+function SkeletonCard({ rows = 3 }: { rows?: number }) {
   return (
     <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4">
       <div className="flex items-center gap-2 mb-5">
@@ -66,7 +64,7 @@ function SkeletonCard({ title, rows = 3 }: { title: string; rows?: number }) {
 
 /* ── loading steps ───────────────────────────────────────────── */
 const STEPS = [
-  "Đang đọc website và phân tích công ty...",
+  "Đang đọc metadata từ website...",
   "Xây dựng Ideal Customer Profile...",
   "Tạo danh sách leads phù hợp ICP...",
   "Viết email outreach cá nhân hóa...",
@@ -102,23 +100,24 @@ function LoadingView({ website, step }: { website: string; step: number }) {
             </div>
           ))}
         </div>
-        {/* skeleton preview below */}
         <div className="mt-10 space-y-3 opacity-40 pointer-events-none">
-          <SkeletonCard title="Company" rows={2} />
-          <SkeletonCard title="ICP" rows={2} />
+          <SkeletonCard rows={2} />
+          <SkeletonCard rows={2} />
         </div>
       </div>
     </div>
   );
 }
 
-/* ── lead gate modal ─────────────────────────────────────────── */
+/* ── single lead gate modal ──────────────────────────────────── */
 function LeadGateModal({
   website,
   onUnlocked,
+  onClose,
 }: {
   website: string;
   onUnlocked: () => void;
+  onClose: () => void;
 }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -136,11 +135,7 @@ function LeadGateModal({
       const res = await fetch("/api/marketing-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          source: "demo_gate",
-          websiteAnalyzed: website,
-        }),
+        body: JSON.stringify({ email, source: "demo_gate", websiteAnalyzed: website }),
       });
       if (!res.ok) throw new Error("save failed");
       onUnlocked();
@@ -152,73 +147,61 @@ function LeadGateModal({
   }
 
   return (
-    <AnimatePresence>
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="absolute inset-0 z-10 flex items-center justify-center"
-        style={{ backdropFilter: "blur(8px)" }}
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="relative bg-zinc-950 border border-amber-500/30 rounded-2xl p-8 max-w-sm w-full shadow-2xl shadow-amber-500/10 text-center"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="bg-zinc-950 border border-amber-500/30 rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl shadow-amber-500/10 text-center"
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-7 h-7 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+          aria-label="Đóng"
         >
-          <div className="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-5">
-            <Lock className="w-7 h-7 text-amber-400" />
+          <X className="w-3.5 h-3.5" />
+        </button>
+        <div className="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-5">
+          <Lock className="w-7 h-7 text-amber-400" />
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">Mở khoá toàn bộ kết quả</h3>
+        <p className="text-slate-400 text-sm mb-6">
+          Nhập email để xem đầy đủ 5 leads + email outreach cá nhân hóa. Miễn phí.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); setError(""); }}
+              placeholder="email@company.com"
+              className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 text-sm transition-colors"
+              autoFocus
+            />
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Mở khoá toàn bộ kết quả</h3>
-          <p className="text-slate-400 text-sm mb-6">
-            Nhập email để xem đầy đủ 5 leads + email outreach cá nhân hóa. Miễn phí.
-          </p>
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setError(""); }}
-                placeholder="email@company.com"
-                className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 text-sm transition-colors"
-                autoFocus
-              />
-            </div>
-            {error && <p className="text-red-400 text-xs text-left">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 text-black font-bold rounded-xl transition-all text-sm"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
-              {loading ? "Đang mở khoá..." : "Mở khoá kết quả đầy đủ"}
-            </button>
-          </form>
-          <p className="text-slate-600 text-xs mt-4">
-            Không spam. Huỷ bất kỳ lúc nào.
-          </p>
-        </motion.div>
+          {error && <p className="text-red-400 text-xs text-left">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 text-black font-bold rounded-xl transition-all text-sm"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
+            {loading ? "Đang mở khoá..." : "Mở khoá kết quả đầy đủ"}
+          </button>
+        </form>
+        <p className="text-slate-600 text-xs mt-4">Không spam. Huỷ bất kỳ lúc nào.</p>
       </motion.div>
-    </AnimatePresence>
+    </div>
   );
 }
 
 /* ── lead row ────────────────────────────────────────────────── */
-function LeadRow({
-  lead,
-  index,
-  blurred,
-}: {
-  lead: Lead;
-  index: number;
-  blurred: boolean;
-}) {
+function LeadRow({ lead, index, blurred }: { lead: Lead; index: number; blurred: boolean }) {
   return (
     <div
-      className={`p-5 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row sm:items-center gap-4 transition-all duration-300 ${
-        blurred ? "select-none" : ""
-      }`}
-      style={blurred ? { filter: "blur(6px)" } : {}}
+      className="p-5 rounded-xl bg-white/5 border border-white/10 flex flex-col sm:flex-row sm:items-center gap-4 transition-all duration-300"
+      style={blurred ? { filter: "blur(6px)", userSelect: "none" } : {}}
       aria-hidden={blurred}
     >
       <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-sm shrink-0">
@@ -268,10 +251,9 @@ export default function DemoResultPage() {
     return () => clearInterval(id);
   }, [loading]);
 
-  /* call API */
+  /* call real API */
   useEffect(() => {
     if (!website) { setLoading(false); return; }
-
     const controller = new AbortController();
 
     (async () => {
@@ -286,7 +268,6 @@ export default function DemoResultPage() {
         if (!res.ok) throw new Error(json.error ?? "API error");
         setResult(json.data as DemoResult);
         setLoadStep(STEPS.length);
-        // Show gate after 0.5s so user can see the page first
         setTimeout(() => setShowGate(true), 600);
       } catch (err: unknown) {
         if ((err as { name?: string }).name === "AbortError") return;
@@ -299,6 +280,11 @@ export default function DemoResultPage() {
     return () => controller.abort();
   }, [website]);
 
+  function handleUnlocked() {
+    setUnlocked(true);
+    setShowGate(false);
+  }
+
   /* ── no website param ── */
   if (!website && !loading) {
     return (
@@ -307,7 +293,7 @@ export default function DemoResultPage() {
           <div>
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-3">Thiếu website</h2>
-            <p className="text-slate-400 mb-6">Vui lòng quay lại và nhập website của công ty cần phân tích.</p>
+            <p className="text-slate-400 mb-6">Vui lòng quay lại và nhập website cần phân tích.</p>
             <Link href="/demo" className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-all inline-block">
               Quay lại Demo
             </Link>
@@ -336,7 +322,7 @@ export default function DemoResultPage() {
             <h2 className="text-2xl font-bold text-white mb-3">Phân tích thất bại</h2>
             <p className="text-slate-400 mb-2">{apiError || "Không thể phân tích website này."}</p>
             <p className="text-slate-600 text-sm mb-6">Vui lòng thử lại hoặc dùng một website khác.</p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex gap-3 justify-center flex-wrap">
               <Link href="/demo" className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-all inline-block">
                 Thử website khác
               </Link>
@@ -354,11 +340,21 @@ export default function DemoResultPage() {
   }
 
   const VISIBLE_LEADS = 2;
-  const lockedLeads = result.leads.slice(VISIBLE_LEADS);
+  const visibleLeads = result.leads.slice(0, VISIBLE_LEADS);
+  const lockedLeads  = result.leads.slice(VISIBLE_LEADS);
 
   return (
     <PublicLayout>
-      {/* header bar */}
+      {/* single lead gate modal — only one instance */}
+      {showGate && !unlocked && (
+        <LeadGateModal
+          website={website}
+          onUnlocked={handleUnlocked}
+          onClose={() => setShowGate(false)}
+        />
+      )}
+
+      {/* header */}
       <section className="py-10 border-b border-white/10">
         <div className="max-w-5xl mx-auto px-6">
           <motion.div
@@ -387,22 +383,19 @@ export default function DemoResultPage() {
       </section>
 
       <div className="max-w-5xl mx-auto px-6 py-10 space-y-10">
+
         {/* Company analysis */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-5 h-5 text-amber-400" />
             <h2 className="text-xl font-bold text-white">Phân tích công ty</h2>
           </div>
           <div className="p-6 rounded-2xl bg-white/5 border border-white/10 grid grid-cols-1 md:grid-cols-2 gap-5">
             {[
-              { label: "Tên công ty", value: result.company.name },
-              { label: "Ngành", value: result.company.industry },
-              { label: "Quy mô", value: result.company.companySize ?? "Chưa xác định" },
-              { label: "Thị trường mục tiêu", value: result.company.targetMarket },
+              { label: "Tên công ty",           value: result.company.name },
+              { label: "Ngành",                 value: result.company.industry },
+              { label: "Quy mô",                value: result.company.companySize ?? "Chưa xác định" },
+              { label: "Thị trường mục tiêu",   value: result.company.targetMarket },
             ].map(({ label, value }) => (
               <div key={label}>
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">{label}</p>
@@ -417,9 +410,7 @@ export default function DemoResultPage() {
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Pain Points</p>
               <div className="flex flex-wrap gap-2">
                 {result.company.painPoints.map(p => (
-                  <span key={p} className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
-                    {p}
-                  </span>
+                  <span key={p} className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-300 text-xs">{p}</span>
                 ))}
               </div>
             </div>
@@ -427,21 +418,17 @@ export default function DemoResultPage() {
         </motion.section>
 
         {/* ICP */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <div className="flex items-center gap-2 mb-4">
             <Target className="w-5 h-5 text-amber-400" />
             <h2 className="text-xl font-bold text-white">Ideal Customer Profile (ICP)</h2>
           </div>
           <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/20 grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[
-              { label: "Chức danh mục tiêu", value: result.icp.title },
-              { label: "Quy mô công ty target", value: result.icp.companySize },
-              { label: "Ngành target", value: result.icp.industry },
-              { label: "Decision maker", value: result.icp.decisionMaker },
+              { label: "Chức danh mục tiêu",        value: result.icp.title },
+              { label: "Quy mô công ty target",      value: result.icp.companySize },
+              { label: "Ngành target",               value: result.icp.industry },
+              { label: "Decision maker",             value: result.icp.decisionMaker },
               ...(result.icp.budget ? [{ label: "Budget ước tính", value: result.icp.budget }] : []),
             ].map(({ label, value }) => (
               <div key={label}>
@@ -453,9 +440,7 @@ export default function DemoResultPage() {
               <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">Buyer Pain Points</p>
               <div className="flex flex-wrap gap-2">
                 {result.icp.painPoints.map(p => (
-                  <span key={p} className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
-                    {p}
-                  </span>
+                  <span key={p} className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">{p}</span>
                 ))}
               </div>
             </div>
@@ -463,11 +448,7 @@ export default function DemoResultPage() {
         </motion.section>
 
         {/* Leads */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <div className="flex items-center gap-2">
               <User className="w-5 h-5 text-amber-400" />
@@ -475,7 +456,11 @@ export default function DemoResultPage() {
                 {unlocked ? "5 Leads phù hợp ICP" : `${VISIBLE_LEADS} Leads mẫu (${lockedLeads.length} đang khoá)`}
               </h2>
             </div>
-            {!unlocked && (
+            {unlocked ? (
+              <span className="flex items-center gap-1.5 text-emerald-400 text-sm font-medium">
+                <Unlock className="w-4 h-4" /> Đã mở khoá
+              </span>
+            ) : (
               <button
                 onClick={() => setShowGate(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm font-medium hover:bg-amber-500/15 transition-colors"
@@ -483,27 +468,16 @@ export default function DemoResultPage() {
                 <Unlock className="w-4 h-4" /> Mở khoá tất cả
               </button>
             )}
-            {unlocked && (
-              <span className="flex items-center gap-1.5 text-emerald-400 text-sm font-medium">
-                <Unlock className="w-4 h-4" /> Đã mở khoá
-              </span>
-            )}
           </div>
 
           <div className="space-y-3">
-            {/* visible leads */}
-            {result.leads.slice(0, VISIBLE_LEADS).map((lead, i) => (
-              <motion.div
-                key={lead.email + i}
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.35 + i * 0.1 }}
-              >
+            {visibleLeads.map((lead, i) => (
+              <motion.div key={lead.email + i} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 + i * 0.1 }}>
                 <LeadRow lead={lead} index={i} blurred={false} />
               </motion.div>
             ))}
 
-            {/* locked leads */}
+            {/* locked leads — blurred, click-to-unlock button overlay */}
             {lockedLeads.length > 0 && (
               <div className="relative">
                 <div className="space-y-3">
@@ -511,16 +485,11 @@ export default function DemoResultPage() {
                     <LeadRow key={lead.email + i} lead={lead} index={i + VISIBLE_LEADS} blurred={!unlocked} />
                   ))}
                 </div>
-                {/* gate overlay */}
-                {!unlocked && showGate && (
-                  <LeadGateModal website={website} onUnlocked={() => { setUnlocked(true); setShowGate(false); }} />
-                )}
-                {/* teaser bar when gate not shown yet */}
-                {!unlocked && !showGate && (
+                {!unlocked && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button
                       onClick={() => setShowGate(true)}
-                      className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl shadow-lg transition-all z-10"
+                      className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl shadow-lg transition-all"
                     >
                       <Lock className="w-4 h-4" />
                       Nhập email để xem {lockedLeads.length} leads còn lại
@@ -532,12 +501,8 @@ export default function DemoResultPage() {
           </div>
         </motion.section>
 
-        {/* Email preview — gated */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
+        {/* Email preview */}
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <div className="flex items-center gap-2 mb-4">
             <Mail className="w-5 h-5 text-amber-400" />
             <h2 className="text-xl font-bold text-white">Email Outreach mẫu</h2>
@@ -547,8 +512,7 @@ export default function DemoResultPage() {
               </span>
             )}
           </div>
-
-          <div className={`rounded-2xl bg-white/5 border border-white/10 overflow-hidden transition-all duration-500 ${!unlocked ? "relative" : ""}`}>
+          <div className={`rounded-2xl bg-white/5 border border-white/10 overflow-hidden ${!unlocked ? "relative" : ""}`}>
             <div className={`transition-all duration-500 ${!unlocked ? "blur-sm select-none pointer-events-none" : ""}`}>
               <div className="px-6 py-4 border-b border-white/10 bg-white/3">
                 <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Subject</p>
@@ -608,89 +572,6 @@ export default function DemoResultPage() {
           </div>
         </motion.section>
       </div>
-
-      {/* Floating gate modal when triggered from elsewhere */}
-      {showGate && !unlocked && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-sm">
-            <button
-              onClick={() => setShowGate(false)}
-              className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors z-10"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <div className="bg-zinc-950 border border-amber-500/30 rounded-2xl p-8 shadow-2xl shadow-amber-500/10 text-center">
-              <div className="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-5">
-                <Lock className="w-7 h-7 text-amber-400" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Mở khoá toàn bộ kết quả</h3>
-              <p className="text-slate-400 text-sm mb-6">
-                Nhập email để xem đầy đủ 5 leads + email outreach. Miễn phí, không spam.
-              </p>
-              <LeadGateForm
-                website={website}
-                onUnlocked={() => { setUnlocked(true); setShowGate(false); }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </PublicLayout>
-  );
-}
-
-/* standalone form for the floating modal */
-function LeadGateForm({ website, onUnlocked }: { website: string; onUnlocked: () => void }) {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim() || !email.includes("@")) {
-      setError("Vui lòng nhập email hợp lệ");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/marketing-leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, source: "demo_gate", websiteAnalyzed: website }),
-      });
-      if (!res.ok) throw new Error("save failed");
-      onUnlocked();
-    } catch {
-      setError("Lỗi kết nối. Vui lòng thử lại.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div className="relative">
-        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-        <input
-          type="email"
-          value={email}
-          onChange={e => { setEmail(e.target.value); setError(""); }}
-          placeholder="email@company.com"
-          className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 text-sm transition-colors"
-          autoFocus
-        />
-      </div>
-      {error && <p className="text-red-400 text-xs text-left">{error}</p>}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50 text-black font-bold rounded-xl transition-all text-sm"
-      >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
-        {loading ? "Đang mở khoá..." : "Mở khoá kết quả đầy đủ"}
-      </button>
-      <p className="text-slate-600 text-xs">Không spam. Huỷ bất kỳ lúc nào.</p>
-    </form>
   );
 }
