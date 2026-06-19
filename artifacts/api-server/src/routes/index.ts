@@ -24,11 +24,13 @@ import workflowTemplatesRouter from "./workflow-templates";
 import promptVersionsRouter from "./prompt-versions";
 import costControlRouter from "./cost-control";
 import { authenticate } from "../middleware/authenticate";
+import publicLeadsRouter from "./public-leads";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(publicLeadsRouter);
 
 router.use(authenticate);
 

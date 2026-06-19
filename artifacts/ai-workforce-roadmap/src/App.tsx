@@ -19,6 +19,7 @@ import LandingHome from "@/pages/landing-home";
 import LandingFeatures from "@/pages/landing-features";
 import LandingPricing from "@/pages/landing-pricing";
 import LandingDemo from "@/pages/landing-demo";
+import LandingDemoResult from "@/pages/landing-demo-result";
 import LandingContact from "@/pages/landing-contact";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -212,6 +213,7 @@ function AppRouter() {
       <Route path="/" component={LandingHome} />
       <Route path="/features" component={LandingFeatures} />
       <Route path="/pricing" component={LandingPricing} />
+      <Route path="/demo/result" component={LandingDemoResult} />
       <Route path="/demo" component={LandingDemo} />
       <Route path="/contact" component={LandingContact} />
 

@@ -59,7 +59,7 @@ export default function ContactPage() {
     }
     setLoading(true);
     try {
-      await apiFetch("/api/marketing-leads", {
+      const res = await fetch("/api/marketing-leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -71,10 +71,13 @@ export default function ContactPage() {
           source: "contact_form",
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `Lỗi server: ${res.status}`);
+      }
       setSuccess(true);
-    } catch {
-      // Even if API fails (not yet implemented), show success for UX
-      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gửi thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

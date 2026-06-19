@@ -27,7 +27,7 @@ export default function RegisterPage() {
     setIsLoading(true);
     try {
       await register(form);
-      setLocation("/");
+      setLocation("/onboarding");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
