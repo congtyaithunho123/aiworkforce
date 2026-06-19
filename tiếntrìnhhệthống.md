@@ -173,27 +173,22 @@ Marketing      Sales            HR
 | **Analytics (Cost & Token)** | `routes/analytics` + Dashboard tab | Biểu đồ token sử dụng, chi phí ước tính — tích hợp trong Workspace Dashboard |
 | **AI Sales Team — SDR** | `routes/sales-*` + `/sales` page | 4 bảng DB, 4 agents (Lead Research, Outreach, Follow-up, CRM), 12 API routes |
 | **AI Marketing Team** | `routes/marketing-*` + `/marketing` page | 4 bảng DB, 5 agents (Research, Content, Image, Scheduler, Analytics), 11 routes |
+| **Subscription System** | `plans` + `subscriptions` + `usage_records` tables + `routes/subscriptions` | 3 gói (Starter/Growth/Enterprise), auto-provision, real-time quota tracking |
+| **Billing Dashboard** | `pages/billing.tsx` | Quota usage bars, cost summary, upgrade modal chọn gói |
+| **API Key Management** | `provider_keys` table + `routes/provider-keys` + `/settings` page | Lưu OpenAI key riêng, preview, xoá, deactivate khi thêm key mới |
+| **Audit Log** | `audit_logs` table + `routes/audit-logs` + Settings tab | Ghi lại toàn bộ hành động theo tổ chức, xem trong Settings → Audit Log |
+| **Notifications** | `notifications` table + `routes/notifications` + Bell icon in Nav | Dropdown bell với unread count, đọc từng cái hoặc đọc tất cả |
+| **Onboarding Wizard** | `pages/onboarding.tsx` + `routes/onboarding` | 4 bước: chọn ngành → nhập website → chọn AI Team → hoàn tất; lưu vào organizations |
 
-### ⚠️ Xây một phần
-
-| Chức năng | Tên kỹ thuật | Còn thiếu |
-|---|---|---|
-| **Billing Dashboard** | Dashboard tab "Analytics" | Có hiển thị token/cost nhưng chưa có quản lý gói, thanh toán, quota limit |
-
-### ❌ Chưa xây dựng (SaaS roadmap)
+### ❌ Chưa xây dựng (SaaS roadmap — tiếp theo)
 
 | # | Chức năng | Tên kỹ thuật dự kiến | Mô tả |
 |---|---|---|---|
-| 1 | **Subscription System** | `plans` + `subscriptions` + `usage_records` tables | Gói Starter / Growth / Enterprise, giới hạn quota |
-| 2 | **API Key Management** | `provider_keys` table + `/settings/api-keys` | Người dùng nhập OpenAI key riêng hoặc dùng key hệ thống |
-| 3 | **Audit Log** | `audit_logs` table + middleware | Ghi lại user action, agent action, workflow action |
-| 4 | **Notifications** | `notifications` table + SSE/WebSocket | Thông báo workflow hoàn thành, task thất bại, quota sắp hết |
-| 5 | **Onboarding Wizard** | `pages/onboarding.tsx` | 4 bước: chọn ngành → nhập website → chọn AI Team → tạo workspace |
-| 6 | **AI HR Team** | `routes/hr-*` + `/hr` page | CV Screening, Interview, Onboarding agents |
-| 7 | **AI Accounting Team** | `routes/accounting-*` + `/accounting` page | Invoice, Expense, Tax agents |
-| 8 | **AI Customer Support Team** | `routes/support-*` + `/support` page | Ticket, FAQ, Escalation agents |
-| 9 | **Task Router tự động** | `lib/task-router` | Tự động phân công việc dựa trên yêu cầu |
-| 10 | **Agent Registry (Marketplace)** | `pages/marketplace.tsx` | Mua và triển khai AI Workers từ bên thứ ba |
+| 1 | **AI HR Team** | `routes/hr-*` + `/hr` page | CV Screening, Interview, Onboarding agents |
+| 2 | **AI Accounting Team** | `routes/accounting-*` + `/accounting` page | Invoice, Expense, Tax agents |
+| 3 | **AI Customer Support Team** | `routes/support-*` + `/support` page | Ticket, FAQ, Escalation agents |
+| 4 | **Task Router tự động** | `lib/task-router` | Tự động phân công việc dựa trên yêu cầu |
+| 5 | **Agent Registry (Marketplace)** | `pages/marketplace.tsx` | Mua và triển khai AI Workers từ bên thứ ba |
 
 ### 🔄 Dịch vụ đang chạy
 
@@ -205,4 +200,4 @@ Marketing      Sales            HR
 
 ---
 
-*Cập nhật lần cuối: 20/06/2026*
+*Cập nhật lần cuối: 19/06/2026*

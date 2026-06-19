@@ -12,6 +12,11 @@ import analyticsRouter from "./analytics";
 import toolsRouter from "./tools-api";
 import salesRouter from "./sales";
 import marketingRouter from "./marketing";
+import subscriptionsRouter from "./subscriptions";
+import providerKeysRouter from "./provider-keys";
+import auditLogsRouter from "./audit-logs";
+import notificationsRouter from "./notifications";
+import onboardingRouter from "./onboarding";
 import { authenticate } from "../middleware/authenticate";
 
 const router: IRouter = Router();
@@ -32,5 +37,10 @@ router.use(analyticsRouter);
 router.use(toolsRouter);
 router.use(salesRouter);
 router.use(marketingRouter);
+router.use(subscriptionsRouter);
+router.use(providerKeysRouter);
+router.use(auditLogsRouter);
+router.use(notificationsRouter);
+router.use(onboardingRouter);
 
 export default router;
