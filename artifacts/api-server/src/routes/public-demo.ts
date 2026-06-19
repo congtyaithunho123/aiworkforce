@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { z } from "zod/v4";
+import dns from "node:dns/promises";
+import net from "node:net";
 import { runCompletion } from "../lib/ai-service";
 
 const router = Router();
@@ -41,6 +43,101 @@ const demoResultSchema = z.object({
   }),
 });
 
+/* ── SSRF protection ─────────────────────────────────────────── */
+
+/** Regex patterns that match private/reserved IP ranges */
+const PRIVATE_IP_PATTERNS: RegExp[] = [
+  /^127\./,                                    // loopback 127.0.0.0/8
+  /^0\./,                                      // unspecified 0.x.x.x
+  /^10\./,                                     // private 10.0.0.0/8
+  /^172\.(1[6-9]|2\d|3[01])\./,               // private 172.16-31.x
+  /^192\.168\./,                               // private 192.168.0.0/16
+  /^169\.254\./,                               // link-local 169.254.0.0/16 (AWS metadata)
+  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, // CGNAT 100.64.0.0/10
+  /^198\.(1[89])\./,                           // benchmark 198.18/19
+  /^::1$/,                                     // IPv6 loopback
+  /^fe80:/i,                                   // IPv6 link-local
+  /^fc[0-9a-f]{2}:/i,                          // IPv6 unique local fc00/7
+  /^fd[0-9a-f]{2}:/i,                          // IPv6 unique local fd00/8
+];
+
+const BLOCKED_HOSTNAMES = new Set([
+  "localhost",
+  "metadata.google.internal",
+  "metadata.aws.internal",
+  "169.254.169.254",       // AWS/GCP/Azure metadata IP
+  "instance-data",
+]);
+
+/** Returns true if the IP string belongs to a private/reserved range */
+function isPrivateIP(ip: string): boolean {
+  return PRIVATE_IP_PATTERNS.some(re => re.test(ip));
+}
+
+/**
+ * Validates and normalises a user-supplied URL for SSRF safety.
+ * Throws with a human-readable message if the URL is disallowed.
+ */
+async function validateAndNormalise(rawUrl: string): Promise<string> {
+  const href = rawUrl.startsWith("http://") || rawUrl.startsWith("https://")
+    ? rawUrl
+    : `https://${rawUrl}`;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(href);
+  } catch {
+    throw new Error("URL không hợp lệ");
+  }
+
+  // Allow only safe protocols
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Chỉ hỗ trợ http và https");
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Block explicitly listed hostnames
+  if (BLOCKED_HOSTNAMES.has(hostname)) {
+    throw new Error("Hostname không được phép");
+  }
+
+  // Block hostnames ending in .local / .internal / .localhost
+  if (/\.(local|internal|localhost|intranet)$/i.test(hostname)) {
+    throw new Error("Hostname nội bộ không được phép");
+  }
+
+  // If hostname is a bare IP, check immediately
+  if (net.isIP(hostname)) {
+    if (isPrivateIP(hostname)) {
+      throw new Error("Địa chỉ IP nội bộ không được phép");
+    }
+    return parsed.href;
+  }
+
+  // Resolve hostname → IPs, reject if any resolve to a private range
+  try {
+    const [ipv4Addresses] = await Promise.allSettled([
+      dns.resolve4(hostname),
+    ]);
+
+    if (ipv4Addresses.status === "fulfilled") {
+      for (const addr of ipv4Addresses.value) {
+        if (isPrivateIP(addr)) {
+          throw new Error("Domain trỏ đến địa chỉ IP nội bộ");
+        }
+      }
+    }
+  } catch (err) {
+    if (err instanceof Error && /không được phép|nội bộ|trỏ đến/.test(err.message)) {
+      throw err; // our own validation error — rethrow
+    }
+    // DNS resolution failure is non-fatal; fetch() will handle it
+  }
+
+  return parsed.href;
+}
+
 /* ── Website metadata fetcher ────────────────────────────────── */
 interface SiteMetadata {
   url: string;
@@ -53,14 +150,15 @@ interface SiteMetadata {
 }
 
 async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
-  const url = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
+  // Validate and sanitise first — throws if SSRF attempt detected
+  const safeUrl = await validateAndNormalise(rawUrl);
 
   let html = "";
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
-    const res = await fetch(url, {
+    const res = await fetch(safeUrl, {
       signal: controller.signal,
       headers: {
         "User-Agent":
@@ -75,23 +173,27 @@ async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
       const text = await res.text();
       html = text.slice(0, 30000);
     }
-  } catch {
-    // fetch failed — continue with empty html, AI will infer from URL
+  } catch (err) {
+    if (err instanceof Error && /không được phép|nội bộ|trỏ đến/.test(err.message)) throw err;
+    // other fetch errors (network, timeout) — fall through with empty html
   }
 
   const extract = (pattern: RegExp): string =>
-    (pattern.exec(html)?.[1] ?? "").trim().replace(/&amp;/g, "&").replace(/&quot;/g, '"').slice(0, 300);
+    (pattern.exec(html)?.[1] ?? "").trim()
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .slice(0, 300);
 
-  const title      = extract(/<title[^>]*>([^<]+)<\/title>/i);
+  const title       = extract(/<title[^>]*>([^<]+)<\/title>/i);
   const description = extract(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
     || extract(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
-  const ogTitle    = extract(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+  const ogTitle     = extract(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
     || extract(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
-  const ogDesc     = extract(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+  const ogDesc      = extract(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
     || extract(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i);
-  const siteName   = extract(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i)
+  const siteName    = extract(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i)
     || extract(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i);
-  const keywords   = extract(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i);
+  const keywords    = extract(/<meta[^>]+name=["']keywords["'][^>]+content=["']([^"']+)["']/i);
 
   const effectiveDescription = ogDesc || description;
   const raw = [
@@ -104,7 +206,7 @@ async function fetchSiteMetadata(rawUrl: string): Promise<SiteMetadata> {
     .filter(Boolean)
     .join("\n");
 
-  return { url, title, description: effectiveDescription, siteName, ogTitle, keywords, raw };
+  return { url: safeUrl, title, description: effectiveDescription, siteName, ogTitle, keywords, raw };
 }
 
 /* ── Prompt builder ──────────────────────────────────────────── */
@@ -168,8 +270,19 @@ router.post("/public/demo/analyze", async (req, res) => {
   const { website } = parsed.data;
 
   try {
-    // Step 1: fetch real metadata from the website
-    const meta = await fetchSiteMetadata(website);
+    // Step 1: validate URL for SSRF + fetch real metadata
+    let meta: SiteMetadata;
+    try {
+      meta = await fetchSiteMetadata(website);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // SSRF / validation errors are 400 not 500
+      if (/không hợp lệ|không được phép|nội bộ|trỏ đến|hỗ trợ/.test(msg)) {
+        return res.status(400).json({ error: `Website không hợp lệ: ${msg}` });
+      }
+      // Fetch/network failure — still run AI with empty metadata
+      meta = { url: website, title: "", description: "", siteName: "", ogTitle: "", keywords: "", raw: "" };
+    }
 
     // Step 2: call AI with real metadata in context
     const completion = await runCompletion(
@@ -190,7 +303,7 @@ router.post("/public/demo/analyze", async (req, res) => {
       }
     );
 
-    // Step 3: parse and validate with Zod
+    // Step 3: parse and validate AI output with Zod
     let rawData: unknown;
     try {
       rawData = JSON.parse(completion.content);
@@ -207,7 +320,6 @@ router.post("/public/demo/analyze", async (req, res) => {
 
     const data = validation.data;
 
-    // Ensure exactly 5 leads
     if (data.leads.length < 5) {
       throw new Error(`AI only generated ${data.leads.length} leads (need 5)`);
     }
