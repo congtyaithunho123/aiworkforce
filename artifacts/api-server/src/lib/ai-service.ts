@@ -2,24 +2,31 @@ import OpenAI from "openai";
 import { z } from "zod/v4";
 import { logger } from "./logger";
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY must be set");
+let _openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (_openai) return _openai;
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not set. Please add your OpenAI API key to secrets.");
+  }
+
+  const isGroqKey   = apiKey.startsWith("gsk_");
+  const isGeminiKey = apiKey.startsWith("AIza");
+
+  function getBaseURL(): string | undefined {
+    if (isGroqKey)   return "https://api.groq.com/openai/v1";
+    if (isGeminiKey) return "https://generativelanguage.googleapis.com/v1beta/openai/";
+    return undefined;
+  }
+
+  _openai = new OpenAI({
+    apiKey,
+    ...(getBaseURL() ? { baseURL: getBaseURL() } : {}),
+  });
+  return _openai;
 }
-
-const apiKey = process.env.OPENAI_API_KEY!;
-const isGroqKey   = apiKey.startsWith("gsk_");
-const isGeminiKey = apiKey.startsWith("AIza");
-
-function getBaseURL(): string | undefined {
-  if (isGroqKey)   return "https://api.groq.com/openai/v1";
-  if (isGeminiKey) return "https://generativelanguage.googleapis.com/v1beta/openai/";
-  return undefined;
-}
-
-const openai = new OpenAI({
-  apiKey,
-  ...(getBaseURL() ? { baseURL: getBaseURL() } : {}),
-});
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -66,6 +73,9 @@ function buildDynamicZodSchema(schemaSpec: Record<string, string>): z.ZodObject<
   return z.object(shape);
 }
 
+function isGroqKey(apiKey: string): boolean { return apiKey.startsWith("gsk_"); }
+function isGeminiKey(apiKey: string): boolean { return apiKey.startsWith("AIza"); }
+
 const GROQ_MODEL_MAP: Record<string, string> = {
   "gpt-4o":        "llama-3.3-70b-versatile",
   "gpt-4o-mini":   "llama-3.1-8b-instant",
@@ -81,8 +91,9 @@ const GEMINI_MODEL_MAP: Record<string, string> = {
 };
 
 function resolveModel(requested: string): string {
-  if (isGroqKey)   return GROQ_MODEL_MAP[requested]   ?? "llama-3.1-8b-instant";
-  if (isGeminiKey) return GEMINI_MODEL_MAP[requested] ?? "gemini-2.0-flash";
+  const apiKey = process.env.OPENAI_API_KEY ?? "";
+  if (isGroqKey(apiKey))   return GROQ_MODEL_MAP[requested]   ?? "llama-3.1-8b-instant";
+  if (isGeminiKey(apiKey)) return GEMINI_MODEL_MAP[requested] ?? "gemini-2.0-flash";
   return requested;
 }
 
@@ -90,6 +101,7 @@ export async function runCompletion(
   messages: ChatMessage[],
   options: AICompletionOptions = {},
 ): Promise<AICompletionResult> {
+  const openai = getOpenAI();
   const { model: requestedModel = "gpt-4o-mini", outputFormat = "text", outputSchema } = options;
   const model = resolveModel(requestedModel);
   const isJson = outputFormat === "json";

@@ -36,3 +36,4 @@ export * from "./customers";
 export * from "./deals";
 export * from "./activities";
 export * from "./referrals";
+export * from "./email-sequence-logs";

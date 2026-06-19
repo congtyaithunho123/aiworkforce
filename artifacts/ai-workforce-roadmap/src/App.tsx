@@ -22,13 +22,17 @@ import LandingDemo from "@/pages/landing-demo";
 import LandingDemoResult from "@/pages/landing-demo-result";
 import LandingContact from "@/pages/landing-contact";
 import CRMPage from "@/pages/crm";
+import KpiDashboard from "@/pages/kpi-dashboard";
+import CustomerSuccessPage from "@/pages/customer-success";
+import EmailAutomationPage from "@/pages/email-automation";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
 import { TrialBanner } from "@/components/TrialBanner";
 import {
   GitMerge, Map, LayoutDashboard, Zap, Megaphone, LogOut, User,
-  CreditCard, Settings, Bell, X, Check, Store, Briefcase
+  CreditCard, Settings, Bell, X, Check, Store, Briefcase,
+  BarChart3, Activity, Mail
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -158,6 +162,9 @@ function AppNav() {
     { href: "/sales", label: "AI SDR", Icon: Zap },
     { href: "/marketing", label: "Marketing", Icon: Megaphone },
     { href: "/crm", label: "CRM", Icon: Briefcase },
+    { href: "/kpi", label: "KPI", Icon: BarChart3 },
+    { href: "/customer-success", label: "CS Dashboard", Icon: Activity },
+    { href: "/email-automation", label: "Email", Icon: Mail },
     { href: "/marketplace", label: "Marketplace", Icon: Store },
     { href: "/billing", label: "Billing", Icon: CreditCard },
     { href: "/settings", label: "Settings", Icon: Settings },
@@ -239,6 +246,9 @@ function AppRouter() {
               <Route path="/sales" component={SalesPage} />
               <Route path="/marketing" component={MarketingPage} />
               <Route path="/crm" component={CRMPage} />
+              <Route path="/kpi" component={KpiDashboard} />
+              <Route path="/customer-success" component={CustomerSuccessPage} />
+              <Route path="/email-automation" component={EmailAutomationPage} />
               <Route path="/marketplace" component={MarketplacePage} />
               <Route path="/billing" component={BillingPage} />
               <Route path="/settings" component={SettingsPage} />
