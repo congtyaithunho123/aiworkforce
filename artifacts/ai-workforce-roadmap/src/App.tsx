@@ -27,6 +27,7 @@ import CustomerSuccessPage from "@/pages/customer-success";
 import EmailAutomationPage from "@/pages/email-automation";
 import WorkforcePage from "@/pages/workforce";
 import OSPage from "@/pages/os";
+import BenchmarkPage from "@/pages/benchmark";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { apiFetch } from "@/lib/api";
@@ -34,7 +35,7 @@ import { TrialBanner } from "@/components/TrialBanner";
 import {
   GitMerge, Map, LayoutDashboard, Zap, Megaphone, LogOut, User,
   CreditCard, Settings, Bell, X, Check, Store, Briefcase,
-  BarChart3, Activity, Mail, Server, Cpu
+  BarChart3, Activity, Mail, Server, Cpu, Award
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
@@ -170,6 +171,7 @@ function AppNav() {
     { href: "/marketplace", label: "Marketplace", Icon: Store },
     { href: "/workforce", label: "Cloud Runtime", Icon: Server },
     { href: "/os", label: "Workforce OS", Icon: Cpu },
+    { href: "/benchmark", label: "Benchmark", Icon: Award },
     { href: "/billing", label: "Billing", Icon: CreditCard },
     { href: "/settings", label: "Settings", Icon: Settings },
   ];
@@ -256,6 +258,7 @@ function AppRouter() {
               <Route path="/marketplace" component={MarketplacePage} />
               <Route path="/workforce" component={WorkforcePage} />
               <Route path="/os" component={OSPage} />
+              <Route path="/benchmark" component={BenchmarkPage} />
               <Route path="/billing" component={BillingPage} />
               <Route path="/settings" component={SettingsPage} />
               <Route component={NotFound} />

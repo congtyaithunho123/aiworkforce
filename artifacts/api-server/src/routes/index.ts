@@ -41,6 +41,7 @@ import osKernelRouter from "./os-kernel";
 import osResourcesRouter from "./os-resources";
 import osPolicyRouter from "./os-policy";
 import osGovernanceRouter from "./os-governance";
+import osBenchmarkRouter from "./os-benchmark";
 
 const router: IRouter = Router();
 
@@ -88,5 +89,6 @@ router.use(osKernelRouter);
 router.use(osResourcesRouter);
 router.use(osPolicyRouter);
 router.use(osGovernanceRouter);
+router.use(osBenchmarkRouter);
 
 export default router;
