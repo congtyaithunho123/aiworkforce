@@ -48,3 +48,8 @@ export * from "./shared-memories";
 export * from "./workforce-events";
 export * from "./federation";
 export * from "./collaboration";
+export * from "./os-kernel";
+export * from "./os-resources";
+export * from "./os-policies";
+export * from "./os-governance";
+export * from "./os-deployments";

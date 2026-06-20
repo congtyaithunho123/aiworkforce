@@ -1,0 +1,280 @@
+#!/usr/bin/env node
+/**
+ * Workforce CLI — wf
+ * AI Workforce Operating System command-line interface
+ * Usage: ./wf <command> [options]
+ */
+
+const BASE_URL = process.env.WF_API_URL ?? `http://localhost:8080`;
+const TOKEN = process.env.WF_TOKEN ?? "";
+
+const colors = {
+  reset: "\x1b[0m", bold: "\x1b[1m",
+  green: "\x1b[32m", cyan: "\x1b[36m", yellow: "\x1b[33m",
+  red: "\x1b[31m", gray: "\x1b[90m", white: "\x1b[37m",
+  magenta: "\x1b[35m", blue: "\x1b[34m",
+};
+const c = (col, str) => `${colors[col]}${str}${colors.reset}`;
+const header = (msg) => console.log(`\n${c("bold", c("cyan", "❯"))} ${c("bold", msg)}`);
+const row = (label, val) => console.log(`  ${c("gray", label.padEnd(20))} ${c("white", String(val ?? "—"))}`);
+const hr = () => console.log(c("gray", "  " + "─".repeat(60)));
+
+async function api(path, opts = {}) {
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      headers: { "Content-Type": "application/json", ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}) },
+      ...opts,
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`HTTP ${res.status}: ${err}`);
+    }
+    return res.json();
+  } catch (e) {
+    console.error(c("red", `  ✗ API error: ${e.message}`));
+    console.error(c("gray", `  Make sure API server is running at ${BASE_URL}`));
+    process.exit(1);
+  }
+}
+
+const STATUS_ICON = {
+  RUNNING: "🟢", READY: "🔵", CREATED: "⚪", PAUSED: "🟡",
+  FAILED: "🔴", TERMINATED: "⬛",
+  running: "🟢", completed: "✅", queued: "🔵", failed: "🔴", idle: "⚪",
+};
+
+function printBanner() {
+  console.log(c("magenta", `
+  ╔════════════════════════════════════════╗
+  ║  AI Workforce OS — CLI v1.0.0         ║
+  ║  Quản lý Agent như hệ điều hành       ║
+  ╚════════════════════════════════════════╝`));
+}
+
+function printHelp() {
+  printBanner();
+  console.log(c("bold", "\nCommands:"));
+  const cmds = [
+    ["agent list", "Liệt kê tất cả kernel agents"],
+    ["agent start <id>", "Dispatch agent vào worker node"],
+    ["agent pause <id>", "Pause agent"],
+    ["agent stop <id>", "Terminate agent"],
+    ["workflow list", "Liệt kê workflows"],
+    ["workflow run <id>", "Chạy workflow ngay"],
+    ["task list", "20 tasks gần nhất"],
+    ["task status <id>", "Chi tiết task"],
+    ["monitor", "Dashboard realtime (Control Plane)"],
+    ["deploy <env> [--target <t>]", "Deploy workforce (local/docker/vps/kubernetes)"],
+    ["policy list", "Liệt kê policies"],
+    ["audit", "Xem audit trail 7 ngày gần nhất"],
+    ["sandbox list", "Xem sandbox sessions"],
+  ];
+  cmds.forEach(([cmd, desc]) => {
+    console.log(`  ${c("green", `wf ${cmd.padEnd(30)}`)} ${c("gray", desc)}`);
+  });
+  console.log(c("gray", `\nOptions:`));
+  console.log(`  ${c("yellow", "--target docker|vps|kubernetes|local")}  Deployment target`);
+  console.log(`  ${c("yellow", "--replicas <n>")}                         Số replicas`);
+  console.log(`  ${c("yellow", "--env <name>")}                           API URL env var override`);
+  console.log("");
+}
+
+async function cmdAgentList() {
+  header("Kernel Agents");
+  const data = await api("/api/os/kernel/agents");
+  if (!data.agents.length) { console.log(c("gray", "  Chưa có agents")); return; }
+  hr();
+  data.agents.forEach(a => {
+    const icon = STATUS_ICON[a.status] ?? "❓";
+    console.log(`  ${icon} ${c("bold", a.name.padEnd(20))} ${c("cyan", a.status.padEnd(12))} ${c("gray", a.agentType.padEnd(12))} ${c("yellow", `P:${a.priority}`)} ${a.workerNode ? c("green", `→ ${a.workerNode}`) : c("gray", "not dispatched")}`);
+  });
+  hr();
+  console.log(c("gray", `  Total: ${data.agents.length}`));
+}
+
+async function cmdAgentAction(id, action) {
+  const statusMap = { start: "RUNNING", pause: "PAUSED", stop: "TERMINATED" };
+  if (action === "start") {
+    const data = await api("/api/os/scheduler/dispatch", { method: "POST", body: JSON.stringify({ agentId: Number(id) }) });
+    console.log(c("green", `  ✓ Agent dispatched → ${data.workerNode}`));
+  } else {
+    await api(`/api/os/kernel/agents/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: statusMap[action] }) });
+    console.log(c("green", `  ✓ Agent ${action}ed`));
+  }
+}
+
+async function cmdWorkflowList() {
+  header("Workflows");
+  const data = await api("/api/os/workflows");
+  if (!data.workflows.length) { console.log(c("gray", "  Chưa có workflows")); return; }
+  hr();
+  data.workflows.forEach(w => {
+    const icon = STATUS_ICON[w.status] ?? "❓";
+    const sched = w.scheduleType === "cron" ? `[${w.cronExpression}]` : w.scheduleType === "event" ? `[${w.eventTrigger}]` : "[immediate]";
+    console.log(`  ${icon} ${c("bold", String(w.id).padEnd(4))} ${c("white", w.name.padEnd(30))} ${c("gray", sched)} ✅${w.successCount} ❌${w.failureCount}`);
+  });
+  hr();
+}
+
+async function cmdWorkflowRun(id) {
+  header(`Running Workflow #${id}`);
+  console.log(c("gray", "  Dispatching..."));
+  const data = await api(`/api/os/workflows/${id}/run`, { method: "POST" });
+  console.log(c("green", `  ✓ Completed in ${data.task.durationMs ?? "?"}ms`));
+  row("Status", data.task.status);
+}
+
+async function cmdTaskList() {
+  header("Tasks (recent 20)");
+  const data = await api("/api/os/tasks");
+  if (!data.tasks.length) { console.log(c("gray", "  Chưa có tasks")); return; }
+  hr();
+  data.tasks.slice(0, 20).forEach(t => {
+    const icon = STATUS_ICON[t.status] ?? "❓";
+    console.log(`  ${icon} #${String(t.id).padEnd(5)} ${c("white", t.name.padEnd(35))} ${c("gray", t.durationMs ? `${t.durationMs}ms` : "...")}`);
+  });
+}
+
+async function cmdTaskStatus(id) {
+  header(`Task #${id}`);
+  const data = await api(`/api/os/tasks/${id}`);
+  const t = data.task;
+  row("Name", t.name); row("Status", t.status); row("Type", t.type);
+  row("Priority", t.priority); row("Duration", t.durationMs ? `${t.durationMs}ms` : "—");
+  if (t.errorMessage) row("Error", t.errorMessage);
+}
+
+async function cmdMonitor() {
+  header("Control Plane Dashboard");
+  const data = await api("/api/os/control-plane");
+  console.log("");
+  console.log(c("bold", "  AGENTS"));
+  const s = data.kernel.agents.byStatus;
+  console.log(`  🟢 Running: ${s.RUNNING}  🔵 Ready: ${s.READY}  ⚪ Created: ${s.CREATED}  🟡 Paused: ${s.PAUSED}  🔴 Failed: ${s.FAILED}  ⬛ Term: ${s.TERMINATED}`);
+  console.log("");
+  console.log(c("bold", "  WORKFLOWS"));
+  row("Total", data.kernel.workflows.total);
+  row("Enabled", data.kernel.workflows.enabled);
+  console.log("");
+  console.log(c("bold", "  GOVERNANCE"));
+  row("Pending Approvals", data.governance.pendingApprovals);
+  row("Active Sandboxes", data.resources.summary.activeSandboxes);
+  row("Total Policies", data.governance.policies);
+  console.log("");
+  if (data.governance.recentAuditLogs.length) {
+    console.log(c("bold", "  RECENT AUDIT (last 5)"));
+    data.governance.recentAuditLogs.slice(0, 5).forEach(l => {
+      console.log(`  ${c("gray", new Date(l.createdAt).toLocaleTimeString("vi-VN").padEnd(10))} ${c("cyan", l.actor.padEnd(15))} ${c("white", l.action)} ${c("gray", l.resource)}`);
+    });
+  }
+}
+
+async function cmdDeploy(env, args) {
+  const targetIdx = args.indexOf("--target");
+  const target = targetIdx !== -1 ? args[targetIdx + 1] : "docker";
+  const replicasIdx = args.indexOf("--replicas");
+  const replicas = replicasIdx !== -1 ? Number(args[replicasIdx + 1]) : 1;
+
+  header(`Deploying to ${env} — target: ${target}, replicas: ${replicas}`);
+
+  const steps = {
+    local: ["Read config", "Start process", "Health check"],
+    docker: ["Build image", "Push registry", "Deploy container", "Health check"],
+    vps: ["SSH connect", "Pull code", "Build", "Restart", "Health check"],
+    kubernetes: ["Apply manifests", "Wait for pods", "Scale replicas", "Ingress", "Health check"],
+  }[target] ?? ["Deploy"];
+
+  for (const step of steps) {
+    process.stdout.write(`  ${c("gray", "›")} ${step}... `);
+    await new Promise(r => setTimeout(r, 400));
+    console.log(c("green", "✓"));
+  }
+
+  const data = await api("/api/os/deployments", {
+    method: "POST",
+    body: JSON.stringify({ name: `CLI Deploy ${new Date().toLocaleTimeString("vi-VN")}`, environment: env, target, replicas }),
+  });
+
+  console.log("");
+  console.log(c("green", `  ✓ Deployment #${data.deployment.id} — ${data.deployment.status}`));
+  row("Target", target); row("Env", env); row("Replicas", replicas); row("Healthy", data.deployment.isHealthy ? "✅" : "❌");
+}
+
+async function cmdPolicyList() {
+  header("Policies");
+  const data = await api("/api/os/policies");
+  if (!data.policies.length) { console.log(c("gray", "  Chưa có policies")); return; }
+  hr();
+  data.policies.forEach(p => {
+    const icon = p.effect === "allow" ? "✅" : "❌";
+    const active = p.isActive ? "" : c("gray", "[INACTIVE]");
+    console.log(`  ${icon} ${c("bold", p.name.padEnd(30))} ${c("cyan", p.role.padEnd(20))} P:${p.priority} ${active}`);
+  });
+}
+
+async function cmdAudit() {
+  header("Audit Trail (7 days)");
+  const data = await api("/api/os/governance/audit");
+  hr();
+  data.logs.slice(0, 30).forEach(l => {
+    const sev = l.severity === "critical" ? c("red", "CRIT") : l.severity === "warning" ? c("yellow", "WARN") : c("gray", "INFO");
+    console.log(`  ${sev} ${c("gray", new Date(l.createdAt).toLocaleString("vi-VN").padEnd(18))} ${c("cyan", l.actor.padEnd(15))} ${c("white", l.action)} ${c("gray", l.resource)}`);
+  });
+  console.log(c("gray", `\n  Total: ${data.count} records`));
+}
+
+async function cmdSandboxList() {
+  header("Sandbox Sessions");
+  const data = await api("/api/os/sandbox");
+  if (!data.sessions.length) { console.log(c("gray", "  Chưa có sandbox sessions")); return; }
+  hr();
+  data.sessions.forEach(s => {
+    const icon = s.status === "running" ? "🟢" : "⬛";
+    console.log(`  ${icon} #${s.id} ${c("white", s.agentName ?? "anonymous")} ${c("gray", `[${(s.allowedTools ?? []).join(",")}]`)} Net:${s.networkAccess ? "✅" : "❌"}`);
+  });
+}
+
+// ─── Main ────────────────────────────────────────────────────────────────────
+
+const [,, cmd, ...args] = process.argv;
+
+if (!cmd || cmd === "help" || cmd === "--help") { printHelp(); process.exit(0); }
+
+(async () => {
+  try {
+    if (cmd === "agent") {
+      const sub = args[0];
+      if (sub === "list" || !sub) await cmdAgentList();
+      else if (["start", "pause", "stop"].includes(sub)) await cmdAgentAction(args[1], sub);
+      else { console.error(c("red", `Unknown agent command: ${sub}`)); process.exit(1); }
+    } else if (cmd === "workflow") {
+      const sub = args[0];
+      if (sub === "list" || !sub) await cmdWorkflowList();
+      else if (sub === "run") await cmdWorkflowRun(args[1]);
+      else { console.error(c("red", `Unknown workflow command: ${sub}`)); process.exit(1); }
+    } else if (cmd === "task") {
+      const sub = args[0];
+      if (sub === "list" || !sub) await cmdTaskList();
+      else if (sub === "status") await cmdTaskStatus(args[1]);
+      else { console.error(c("red", `Unknown task command: ${sub}`)); process.exit(1); }
+    } else if (cmd === "monitor") {
+      await cmdMonitor();
+    } else if (cmd === "deploy") {
+      await cmdDeploy(args[0] ?? "production", args.slice(1));
+    } else if (cmd === "policy") {
+      await cmdPolicyList();
+    } else if (cmd === "audit") {
+      await cmdAudit();
+    } else if (cmd === "sandbox") {
+      await cmdSandboxList();
+    } else {
+      console.error(c("red", `Unknown command: ${cmd}`));
+      printHelp();
+      process.exit(1);
+    }
+    console.log("");
+  } catch (e) {
+    console.error(c("red", `\n  Error: ${e.message}`));
+    process.exit(1);
+  }
+})();

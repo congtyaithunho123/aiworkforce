@@ -1,8 +1,17 @@
-# Tiến Trình Hệ Thống
+## 03:25:30 21/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 1.06s
+- **Mô tả:** Express API — AI Workforce backend
 
-_Log tự động — ghi lại mỗi lần build thành công_
+## 03:09:03 21/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 1.76s
+- **Mô tả:** Express API — AI Workforce backend
 
----
+## 03:09:03 21/06/2026 — `api-server`
+- **Trạng thái:** ✅ Thành công
+- **Thời gian build:** 1.61s
+- **Mô tả:** Express API — AI Workforce backend
 
 ## 05:29:31 20/06/2026 — `api-server`
 - **Trạng thái:** ✅ Thành công
@@ -19,6 +28,46 @@ _Log tự động — ghi lại mỗi lần build thành công_
 - **Agent Analytics Dashboard riêng** — trang thống kê chi tiết cho từng agent đã publish: lượt cài đặt theo ngày, doanh thu, rating trung bình, top reviews
 - **Workflow Publisher** — tương tự Publish Agent nhưng cho Workflow (multi-agent pipeline), publish toàn bộ workflow lên store
 - **Notification Center** — trung tâm thông báo real-time: khi agent được cài đặt, khi có review mới, khi có task cần duyệt
+
+---
+
+## ✅ 20:25:30 20/06/2026 — `AI Workforce Operating System (10 tính năng)`
+- **Trạng thái:** ✅ Build xong — API Server 840ms, CLI hoạt động
+- **DB Tables mới (10 bảng):**
+  - `kernel_agents` — vòng đời agent: CREATED→READY→RUNNING→PAUSED→FAILED→TERMINATED
+  - `kernel_workflows` — workflow scheduler: immediate/cron/event
+  - `kernel_tasks` — task execution queue
+  - `resource_quotas` — quota per-agent: CPU/RAM/token/cost
+  - `resource_usage` — time-series resource tracking
+  - `os_policies` — policy engine: allow/deny per role
+  - `sandbox_sessions` — isolated execution environments
+  - `os_audit_logs` — audit trail đầy đủ mọi action
+  - `os_approvals` — governance approval requests
+  - `os_deployments` — deployment history
+- **Backend (4 route files, ~35 API endpoints):**
+  - `os-kernel.ts` — WorkforceKernel (agent lifecycle) + AgentScheduler (dispatch/load-balance) + WorkflowScheduler (cron/event) + Task Execution
+  - `os-resources.ts` — ResourceManager (quota tracking, snapshot, usage)
+  - `os-policy.ts` — PolicyEngine (evaluate/seed/toggle) + ExecutionSandbox (launch/terminate)
+  - `os-governance.ts` — GovernanceLayer (audit trail, approvals) + DeploymentManager (local/docker/vps/k8s) + Control Plane summary
+- **Frontend `/os` (10 tabs):**
+  - Control Plane — overview dashboard: agent matrix, audit log, deployments
+  - Kernel — tạo agent, state machine (CREATED→READY→RUNNING→PAUSED→TERMINATED)
+  - Scheduler — worker nodes load balancer, queue stats, dispatch
+  - Workflows — tạo workflow (immediate/cron/event), run, task history
+  - Resources — live usage snapshot, quota gauges, spending
+  - Sandbox — launch/terminate isolated execution environments
+  - Policies — seed preset, evaluate (role+resource+action), enable/disable
+  - Governance — audit trail, approval requests + approve/reject
+  - Deployments — deploy với live log terminal (local/docker/vps/k8s)
+  - CLI — terminal UI với tất cả commands
+- **CLI `./wf` (Node.js script):**
+  - `wf agent list/start/pause/stop`
+  - `wf workflow list/run <id>`
+  - `wf task list/status <id>`
+  - `wf monitor` — control plane dashboard
+  - `wf deploy <env> --target <target> --replicas <n>`
+  - `wf policy list`, `wf audit`, `wf sandbox list`
+- **Nav:** "Workforce OS" link trong AppNav
 
 ---
 

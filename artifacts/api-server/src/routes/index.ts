@@ -37,6 +37,10 @@ import workforceGraphRouter from "./workforce-graph";
 import workforceMonitoringRouter from "./workforce-monitoring";
 import workforceFederationRouter from "./workforce-federation";
 import workforceCollaborationRouter from "./workforce-collaboration";
+import osKernelRouter from "./os-kernel";
+import osResourcesRouter from "./os-resources";
+import osPolicyRouter from "./os-policy";
+import osGovernanceRouter from "./os-governance";
 
 const router: IRouter = Router();
 
@@ -80,5 +84,9 @@ router.use(workforceGraphRouter);
 router.use(workforceMonitoringRouter);
 router.use(workforceFederationRouter);
 router.use(workforceCollaborationRouter);
+router.use(osKernelRouter);
+router.use(osResourcesRouter);
+router.use(osPolicyRouter);
+router.use(osGovernanceRouter);
 
 export default router;
